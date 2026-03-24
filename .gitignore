@@ -1,0 +1,94 @@
+# LaTeX 编译临时文件
+*.synctex.gz
+*.synctex.gz(busy)
+*.synctex(busy)
+*.fls
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fdb_latexmk
+*.snm
+*.nav
+*.vrb
+*.bak
+*.swp
+*~
+*.run.xml
+*-concordance.tex
+*-concordance.pdf
+
+# 编译产生的 PDF（按需取消注释）
+# *.pdf
+
+# ==========================================
+# 项目本地文件（勿上传至仓库）
+# ==========================================
+
+# 参考模板
+whu_thesis_2024__1_/
+Wuhan_University_LaTeX_Undergraduate_Thesis_Template__1_
+武汉大学_LaTeX_本科生毕业论文模板__*/
+
+# 自行开发的项目代码（如毕设相关的代码仓库）
+06/
+*/06/
+
+# 中间产物
+*.pdf
+*_temp.*
+*_backup.*
+
+# ==========================================
+# 系统和编辑器产生的文件
+# ==========================================
+
+# Windows
+Thumbs.db
+Desktop.ini
+.DS_Store
+ehthumbs.db
+Icon?
+._*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+.*
+!.gitignore
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*.swo
+*~
+.~
+*.sublime-*
+.project
+.classpath
+.settings/
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# TeXworks
+*.bak
+*.backup
+
+# ==========================================
+# 依赖和包（如果有）
+# ==========================================
+# texlive/
+# MikTeX/
