@@ -6,31 +6,326 @@
 
 本文原型系统的设计目标包括以下四个方面。
 
-第一，知识增强能力。构建面向运维领域的知识库，通过检索增强生成机制为模型提供标准操作流程、历史故障案例等背景信息，提升回答的专业性。
+第一，知识增强能力。构建面向运维领域的知识库，通过检索增强生成机制为模型提供标准操作流程、历史故障案例等背景信息，提升回答的专业性。知识库需要具备语义检索能力，能够根据问题上下文精准召回相关文档~\cite{zhang2024rag4itops}。
 
-第二，多源数据组织能力。将日志、监控指标和告警等异构数据统一组织为适合大模型分析的上下文，支撑后续推理任务。
+第二，多源数据组织能力。将日志、监控指标和告警等异构数据统一组织为适合大模型分析的上下文~\cite{pham2024rcacausal}。不同数据源的格式、语义和时效性各不相同，如何设计有效的数据融合策略是多源数据处理的关键~\cite{ji2024superlog}。
 
-第三，故障诊断能力。通过结构化提示引导大语言模型完成故障摘要生成、原因推断与修复建议输出。
+第三，故障诊断能力。通过结构化提示引导大语言模型完成故障摘要生成、原因推断与修复建议输出~\cite{liu2023logprompt}。诊断过程需要可解释，每个结论都应基于明确的证据支撑~\cite{roy2024agents}。
 
-第四，自然语言交互能力。基于ChatOps理念提供对话式交互界面，降低运维人员的使用门槛。
+第四，自然语言交互能力。基于ChatOps理念提供对话式交互界面，降低运维人员的使用门槛~\cite{liu2024agentsurvey}。用户能够以自然语言描述问题，系统返回结构化的诊断结果。
+
+\section{系统总体架构}
+
+LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:system-architecture}所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=1.2cm,
+    font=\songti\xiaosi,
+    box/.style={draw, rounded corners, minimum width=3cm, minimum height=0.8cm, align=center},
+    arrow/.style={->, thick},
+    layer/.style={fill=#1}
+]
+
+% 定义颜色
+\def\lcolorI{#2D87BB}
+\def\lcolorII{#5BA55B}
+\def\lcolorIII{#E8A838}
+\def\lcolorIV{#D64545}
+
+% 第四层 - 数据存储层
+\node[box, fill=\lcolorIV!20, draw=\lcolorIV, minimum width=10cm] (layer4) at (0, -5) {数据存储层};
+
+\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (chroma) at (-3.2, -5) {ChromaDB\\向量数据库};
+\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (mysql) at (0, -5) {MySQL\\关系数据库};
+\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (fs) at (3.2, -5) {文件系统\\日志/指标};
+
+% 第三层 - 核心逻辑层
+\node[box, fill=\lcolorIII!20, draw=\lcolorIII, minimum width=10cm] (layer3) at (0, -2.8) {核心逻辑层};
+
+\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (knowledge) at (-3.2, -2.8) {知识检索\\模块};
+\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (evidence) at (0, -2.8) {证据融合\\模块};
+\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (rca) at (3.2, -2.8) {RCA推理\\引擎};
+
+% 第二层 - 服务接口层
+\node[box, fill=\lcolorII!20, draw=\lcolorII, minimum width=10cm] (layer2) at (0, -0.6) {服务接口层};
+
+\node[box, fill=white, draw=\lcolorII, minimum width=3cm] (api) at (0, -0.6) {FastAPI RESTful API};
+
+% 第一层 - 用户交互层
+\node[box, fill=\lcolorI!20, draw=\lcolorI, minimum width=10cm] (layer1) at (0, 1.6) {用户交互层};
+
+\node[box, fill=white, draw=\lcolorI, minimum width=8cm] (ui) at (0, 1.6) {Streamlit Web界面\\故障诊断 / 知识查询 / 监控展示 / 实验评估};
+
+% 箭头连接
+\draw[arrow] (ui) -- (api);
+\draw[arrow] (api) -- (knowledge);
+\draw[arrow] (api) -- (evidence);
+\draw[arrow] (api) -- (rca);
+\draw[arrow] (knowledge) -- (chroma);
+\draw[arrow] (evidence) -- (chroma);
+\draw[arrow] (evidence) -- (mysql);
+\draw[arrow] (evidence) -- (fs);
+
+% 数据源标注
+\node[anchor=south west, font=\xiaoliu] at (-5, -2.8) {外部数据源:};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (-4.5, -3.5) {日志};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (-2.2, -3.5) {监控指标};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (0.1, -3.5) {运维文档};
+
+\draw[->, dashed, gray] (-4.5, -3.5) -- (-4, -3.2);
+\draw[->, dashed, gray] (-2.2, -3.5) -- (-0.8, -3.2);
+\draw[->, dashed, gray] (0.1, -3.5) -- (2, -3.2);
+
+% LLM标注
+\node[box, fill=\lcolorIII!30, draw=\lcolorIII, dashed, minimum width=2cm, font=\xiaoliu] at (3.2, -1.8) {LLM API};
+
+\draw[arrow] (rca) -- (3.2, -1.8);
+
+\end{tikzpicture}
+\caption{LLM-Ops Copilot系统总体架构}
+\label{fig:system-architecture}
+\end{figure}
+
+系统由四个核心层次构成：
+
+（1）\textbf{用户交互层}：基于Streamlit构建，提供友好的Web界面。用户可以通过自然语言向系统描述故障现象，系统以结构化形式返回诊断结果，包括故障摘要、根因分析、修复建议和置信度评分。
+
+（2）\textbf{服务接口层}：基于FastAPI框架实现RESTful API接口，包括诊断分析接口、知识检索接口、实验评估接口等。该层负责接收用户请求、协调下游服务并返回格式化结果。
+
+（3）\textbf{核心逻辑层}：包含三个核心模块——知识检索模块、证据融合模块和RCA推理引擎。知识检索模块负责从向量数据库中召回相关文档；证据融合模块负责将多源数据统一组织为分析上下文；RCA推理引擎负责引导大语言模型完成根因分析。
+
+（4）\textbf{数据存储层}：包括ChromaDB向量数据库（存储运维知识）、MySQL关系数据库（存储用户对话历史）和文件系统（存储日志和指标数据）。
 
 \section{运维知识库构建}
 
-本文构建的运维知识库涵盖标准操作流程（SOP）文档、历史故障案例和系统架构说明等。其中SOP文档包含CPU故障、内存故障、数据库故障、网络故障等常见场景的标准排查步骤和修复方案。
+本文构建的运维知识库是系统的核心组件之一，其质量直接影响RAG效果的发挥~\cite{zhang2024rag4itops}。
 
-知识库构建过程包括四个步骤。第一步，对原始文档进行格式清理，去除无关符号和重复内容。第二步，按段落和标题层级对长文档进行切分，每个片段保留必要的上下文信息。第三步，使用sentence-transformers预训练模型将文本片段转换为768维语义向量~\cite{zhang2024rag4itops}。第四步，将向量与原始文本、元数据（服务名、故障类型等）一同存入ChromaDB向量数据库，支持按服务名和故障类型进行元数据过滤检索~\cite{zhang2024rag4itops}。
+\subsection{知识库内容体系}
 
-知识检索时，系统根据用户问题生成查询向量，在向量数据库中检索语义最相似的Top-K知识片段，并按相关性排序后返回给后续模块。
+知识库涵盖以下四类文档：
+
+\textbf{SOP文档}：标准操作流程文档，包含CPU故障、内存故障、数据库故障、网络故障等常见场景的标准排查步骤和修复方案~\cite{zhang2024rag4itops}。每份SOP文档遵循统一的模板结构，包括故障现象、可能原因、排查步骤、修复方案和预防措施。
+
+\textbf{历史故障案例}：记录真实发生的故障事件及其处理过程~\cite{roy2024agents}。案例文档包括故障背景、现象描述、诊断过程、根因定位和经验总结，为类似故障的诊断提供参考。
+
+\textbf{系统架构文档}：描述系统各组件的功能、依赖关系和部署方式~\cite{pham2024rcacausal}。当故障涉及多个服务时，架构文档有助于理解服务间的调用链路和故障传播路径。
+
+\textbf{告警响应手册}：定义各类告警的响应策略和处理优先级~\cite{chen2025aiops}。手册根据告警类型和严重程度提供相应的处理建议。
+
+\subsection{知识向量化处理}
+
+知识库构建过程包括以下关键技术环节~\cite{zhang2024rag4itops}：
+
+\textbf{文档预处理}：对原始文档进行格式清理，去除HTML标签、特殊符号和冗余空白。对于Markdown格式的文档，解析其层级结构以保留标题和段落的语义关系。
+
+\textbf{智能切分策略}：采用层级递归切分算法~\cite{jain2025ragjourney}，按文档层级结构进行递归切分。对于SOP文档，以"步骤"为最小切分单元；对于案例文档，以"诊断阶段"为切分边界。切分时保留每个片段的元信息（文档类型、服务名、故障类型等），便于后续的元数据过滤检索~\cite{zhang2024rag4itops}。
+
+\textbf{向量嵌入表示}：使用sentence-transformers预训练模型（all-MiniLM-L6-v2）将文本片段转换为384维语义向量~\cite{zhang2024rag4itops}。该模型在语义相似度任务上表现优异，且推理效率较高，适合实时检索场景。嵌入时将元数据一并编码，支持在检索时按服务类型、故障类型等维度进行过滤。
+
+\textbf{向量存储索引}：将向量与原始文本、元数据一同存入ChromaDB向量数据库~\cite{zhang2024rag4itops}。ChromaDB采用HNSW（Hierarchical Navigable Small World）索引算法，能够在保证检索精度的同时实现毫秒级的Top-K查询。
+
+知识库构建与检索的完整流程如图~\ref{fig:knowledge-base-flow}所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=1cm,
+    font=\songti\xiaosi,
+    proc/.style={draw, rounded corners, fill=#1!15, minimum width=2.8cm, minimum height=1cm, align=center},
+    data/.style={draw, ellipse, fill=#1!20, minimum width=2.5cm, align=center},
+    arrow/.style={->, thick}
+]
+
+% 左侧 - 构建阶段
+\node[proc=blue] (doc) at (-5, 2) {原始文档};
+\node[proc=blue] (clean) at (-5, 0.5) {文档预处理};
+\node[proc=blue] (chunk) at (-5, -1) {智能切分};
+\node[proc=blue] (embed) at (-5, -2.5) {向量嵌入};
+\node[proc=blue] (store) at (-5, -4) {存入ChromaDB};
+
+\draw[arrow] (doc) -- (clean);
+\draw[arrow] (clean) -- (chunk);
+\draw[arrow] (chunk) -- (embed);
+\draw[arrow] (embed) -- (store);
+
+% 左侧说明
+\node[anchor=north, font=\xiaoliu, color=blue] at (-5, 2.5) {知识库构建阶段};
+
+% 中间 - 向量数据库
+\node[data=green] (vectorDB) at (0, -1) {ChromaDB\\向量数据库};
+
+% 右侧 - 检索阶段
+\node[proc=orange] (query) at (5, 2) {用户查询};
+\node[proc=orange] (qembed) at (5, 0.5) {查询向量化};
+\node[proc=orange] (retrieve) at (5, -1) {向量检索};
+\node[proc=orange] (rerank) at (5, -2.5) {相关性重排序};
+\node[data=purple] (result) at (5, -4) {检索结果};
+
+\draw[arrow] (query) -- (qembed);
+\draw[arrow] (qembed) -- (retrieve);
+\draw[arrow] (retrieve) -- (rerank);
+\draw[arrow] (rerank) -- (result);
+
+% 右侧说明
+\node[anchor=north, font=\xiaoliu, color=orange] at (5, 2.5) {知识检索阶段};
+
+% 连接箭头
+\draw[arrow, dashed] (-2.5, -1) -- (-1.5, -1);
+\draw[arrow, dashed] (1.5, -1) -- (2.5, -1);
+
+% 切分详细说明
+\node[anchor=east, font=\xiaoliu, align=left] at (-6.5, -1) {
+    切分策略:\\
+    \xiaoliu • 层级递归切分\\
+    \xiaoliu • SOP: 按步骤切分\\
+    \xiaoliu • 案例: 按阶段切分\\
+    \xiaoliu • 保留元信息
+};
+
+% 元数据过滤标注
+\node[proc=green] (filter) at (0, -3) {元数据过滤};
+\draw[arrow] (filter) -- (vectorDB);
+\node[anchor=north, font=\xiaoliu, color=green] at (0, -2.2) {服务名/故障类型};
+
+\end{tikzpicture}
+\caption{知识库构建与检索流程}
+\label{fig:knowledge-base-flow}
+\end{figure}
+
+\subsection{语义检索策略}
+
+知识检索时，系统采用混合检索策略以平衡召回率和精确度~\cite{jain2025ragjourney}：
+
+\textbf{语义向量检索}：根据用户问题生成查询向量，在向量数据库中执行余弦相似度搜索~\cite{jiang2023active}。该方法能够捕捉问题与文档的语义相似性，即使问题表述与文档用词不同也能命中。
+
+\textbf{关键词过滤}：在向量检索结果基础上，应用元数据过滤~\cite{zhang2024rag4itops}。根据问题中提及的服务名称和故障类型，过滤掉不相关的检索结果，确保返回的知识片段与当前故障场景高度相关。
+
+\textbf{相关性重排序}：对初步检索结果进行相关性评分~\cite{jain2025ragjourney}。综合考虑向量相似度、关键词匹配度和时效性等因素，对结果进行加权排序，优先返回最相关的Top-K知识片段。
 
 \section{多源数据融合方法}
 
 在故障诊断场景中，单一数据源往往难以支撑高质量分析~\cite{pham2024rcacausal}。本文设计了证据融合器（EvidenceBuilder）模块，将知识检索结果、日志摘要和监控指标描述统一组织为结构化的分析上下文。
 
-证据融合器的处理流程如下。首先，对日志数据进行筛选和摘要：按服务名和时间范围过滤日志，提取错误日志和警告日志，统计各类关键词出现频次，将原始日志信息浓缩为结构化的日志摘要。其次，对监控指标进行处理：按预设阈值识别异常指标，将数值型指标异常信息转换为文本描述。最后，将知识检索结果、日志摘要和指标摘要组织为统一的AnalysisContext数据结构。
+\subsection{日志数据处理}
 
-在严重程度评估方面，证据融合器综合考虑以下因素：异常指标数量越多、错误日志越多、指标峰值越高，则故障越严重。该评估结果作为元信息传递给后续的RCA引擎，帮助模型判断故障的紧迫程度。
+日志数据是故障诊断的重要依据，但原始日志具有体量大、噪声多的特点~\cite{liu2023logprompt}。本文设计了三级日志处理流水线：
 
-证据融合的完整流程如算法~\ref{algo:evidence-builder}所示。
+\textbf{第一级：日志过滤}。根据服务名和时间范围进行初步过滤，排除与当前故障无关的日志~\cite{ji2024superlog}。时间范围通常设定为故障发生前后各30分钟。
+
+\textbf{第二级：日志分类}。将过滤后的日志按级别分类~\cite{liu2023logprompt}，重点关注ERROR和WARNING级别日志。通过正则表达式匹配常见错误模式（如Connection timeout、OutOfMemory、NullPointerException等），提取关键错误信息。
+
+\textbf{第三级：日志摘要}。对错误日志进行聚类和统计~\cite{jiang2024lilac}，生成结构化的日志摘要。摘要包含以下信息：（1）错误类型分布——统计各类错误的出现频次；（2）错误时间线——按时间顺序排列关键错误事件；（3）错误上下文——保留错误前后的关键日志行，便于理解错误发生的前因后果。
+
+日志处理的具体实例如表~\ref{tab:log-processing}所示。
+
+\begin{table}[htbp]
+\centering
+\caption{日志处理示例}
+\label{tab:log-processing}
+\begin{tabular}{p{3cm}p{4cm}p{3cm}}
+\toprule
+原始日志量 & 处理后摘要 & 压缩比 \\
+\midrule
+5,234条 & 23条ERROR + 8条WARNING & 99.4\% \\
+错误类型：DB\_TIMEOUT(15)，OOM(5)，NULL\_PTR(3) & 时间集中于14:23-14:31 & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{监控指标处理}
+
+监控指标提供了系统运行状态的定量描述~\cite{pham2024rcacausal}。本文设计的指标处理流程包括：
+
+\textbf{异常指标识别}。按预设阈值识别异常指标~\cite{zhang2024rag4itops}。阈值可根据不同服务动态调整，常见的异常指标包括：CPU使用率（阈值90\%）、内存使用率（阈值85\%）、磁盘使用率（阈值95\%）、响应延迟（阈值500ms）、错误率（阈值1\%）等。
+
+\textbf{指标异常描述}。将数值型指标异常转换为文本描述~\cite{ji2024superlog}。例如，"CPU使用率从30\%飙升至95\%"转换为"CPU使用率异常升高，近5分钟内增长65个百分点"。这种文本化处理有助于大语言模型理解指标变化~\cite{liu2023logprompt}。
+
+\textbf{指标关联分析}。分析不同指标间的关联关系~\cite{pham2024rcacausal}。例如，CPU升高往往伴随响应延迟增加，内存泄漏通常表现为内存使用率持续上升。通过关联分析，可以识别故障的主要矛盾和次要表现。
+
+\subsection{严重程度评估}
+
+证据融合器综合考虑以下因素评估故障严重程度~\cite{ji2024superlog}：
+
+（1）\textbf{异常指标数量}：异常指标越多，表明故障影响范围越广~\cite{pham2024rcacausal}。本文采用加权计数法，CPU和内存异常权重为2，其余指标权重为1。
+
+（2）\textbf{错误日志密度}：单位时间内ERROR日志的出现频次~\cite{liu2023logprompt}。频次越高，表明故障越活跃。
+
+（3）\textbf{指标偏离程度}：异常指标相对于阈值的偏离程度~\cite{zhang2024rag4itops}。例如，CPU使用率达99\%比达91\%更为严重。
+
+严重程度分为四级：INFO（正常）、WARNING（注意）、CRITICAL（严重）、PENDING（紧急）。评估结果作为元信息传递给RCA引擎，帮助模型判断故障的紧迫程度。
+
+证据融合的完整流程如图~\ref{fig:evidence-builder-flow}所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=1cm,
+    font=\songti\xiaosi,
+    input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm},
+    proc/.style={draw, rounded corners, fill=#1!15, minimum width=3cm, minimum height=0.9cm},
+    output/.style={draw, rounded corners, fill=green!15, minimum width=3.5cm, minimum height=1.2cm},
+    arrow/.style={->, thick}
+]
+
+% 输入
+\node[input] (logs) at (-4, 2) {原始日志};
+\node[input] (metrics) at (0, 2) {监控指标};
+\node[input] (knowledge) at (4, 2) {检索知识};
+
+% 日志处理流水线
+\node[proc=blue] (filter) at (-4, 0) {日志过滤};
+\node[proc=blue] (classify) at (-4, -1.5) {日志分类};
+\node[proc=blue] (summary) at (-4, -3) {日志摘要};
+
+\draw[arrow] (logs) -- (filter);
+\draw[arrow] (filter) -- (classify);
+\draw[arrow] (classify) -- (summary);
+
+% 指标处理
+\node[proc=orange] (detect) at (0, 0) {异常识别};
+\node[proc=orange] (convert) at (0, -1.5) {文本转换};
+\node[proc=orange] (analyze) at (0, -3) {关联分析};
+
+\draw[arrow] (metrics) -- (detect);
+\draw[arrow] (detect) -- (convert);
+\draw[arrow] (convert) -- (analyze);
+
+% 严重程度评估
+\node[proc=purple] (severity) at (4, -1.5) {严重程度\\评估};
+
+% 证据融合
+\node[output] (context) at (0, -5.5) {AnalysisContext\\结构化上下文};
+
+% 连接
+\draw[arrow] (summary) -- (severity);
+\draw[arrow] (analyze) -- (severity);
+\draw[arrow] (knowledge) -- (severity);
+\draw[arrow] (severity) -- (context);
+
+% 详细说明
+\node[anchor=north, font=\xiaoliu, color=blue] at (-4, 2.5) {日志处理};
+\node[anchor=north, font=\xiaoliu, color=orange] at (0, 2.5) {指标处理};
+\node[anchor=north, font=\xiaoliu, color=purple] at (4, 2.5) {评估};
+
+% 右侧标注
+\node[anchor=west, font=\xiaoliu, align=left] at (6, -3) {
+    评估因素:\\
+    • 异常指标数量\\
+    • 错误日志密度\\
+    • 指标偏离程度
+};
+
+\end{tikzpicture}
+\caption{证据融合器工作流程}
+\label{fig:evidence-builder-flow}
+\end{figure}
+
+证据融合的伪代码实现如算法~\ref{algo:evidence-builder}所示。
 
 \begin{algorithm}
 \caption{证据融合算法}
@@ -40,9 +335,22 @@
 \SetKwInput{KwOut}{输出}
 \KwIn{$question$, $service$, $time\_range$, $knowledge\_results$, $metrics$, $logs$}
 \KwOut{$context$}
-\nl $anomalies$ $\gets$ 从$metrics$中提取异常指标\;
-\nl $severity$ $\gets$ 根据异常数量和日志情况评估严重程度\;
-\nl $context$ $\gets$ 构建AnalysisContext结构，汇总知识检索、日志摘要、指标摘要和严重程度\;
+\nl $filtered\_logs$ $\gets$ FilterByServiceAndTime($logs$, $service$, $time\_range$)\;
+\nl $error\_logs$ $\gets$ ExtractErrors($filtered\_logs$)\;
+\nl $log\_summary$ $\gets$ GenerateLogSummary($error\_logs$)\;
+\nl $anomalies$ $\gets$ DetectAnomalies($metrics$, $thresholds$)\;
+\nl $anomaly\_descriptions$ $\gets$ ConvertToText($anomalies$)\;
+\nl $severity$ $\gets$ AssessSeverity($anomalies$, $error\_logs$)\;
+\nl $context$ $\gets$ AnalysisContext(
+    \quad question=$question$,
+    \quad service=$service$,
+    \quad time\_range=$time\_range$,
+    \quad retrieved\_knowledge=$knowledge\_results$,
+    \quad log\_summary=$log\_summary$,
+    \quad metrics\_description=$anomaly\_descriptions$,
+    \quad anomaly\_indicators=$anomalies$,
+    \quad severity=$severity$
+)\;
 \nl \Return{$context$}
 \end{algorithm}
 
@@ -50,17 +358,148 @@
 
 根因分析（RCA）是本文方法的重点任务~\cite{roy2024agents}。本文设计并实现了RCA推理引擎（RCAEngine），通过结构化Prompt引导大语言模型完成故障分析。
 
-本文设计的RCA Prompt包含三个核心部分。
+\subsection{结构化Prompt设计}
 
-第一，系统级角色设定。定义模型为资深SRE（网站可靠性工程师），明确其分析原则为：证据驱动（所有结论必须基于提供的证据）、结构化输出（严格按格式返回）、置信度评估（每个根因需给出置信度）和诚实透明（证据不足时明确说明）~\cite{liu2023prompt,liu2023logprompt}。
+本文设计的RCA Prompt包含四个核心组成部分~\cite{liu2023prompt,liu2023logprompt}：
 
-第二，上下文输入规范。将知识检索结果、日志摘要、指标摘要和故障严重程度等信息结构化地组织为Prompt上下文~\cite{zhang2024rag4itops}。
+\textbf{第一部分：角色设定与行为约束}。定义模型为资深SRE（网站可靠性工程师），明确其分析原则~\cite{liu2023prompt}：
 
-第三，推理步骤约束。引导模型按照以下步骤展开分析：（1）现象总结——简洁描述当前异常表现；（2）证据分析——从指标、日志和知识库中提取关键信息；（3）根因假设——列出1至3个可能的根因，并给出置信度和支撑/反对证据；（4）验证计划——列出验证每个根因的具体检查步骤；（5）修复建议——针对最可能的根因给出可操作的修复方案~\cite{roy2024agents}。
+\begin{itemize}
+\item 证据驱动原则：所有结论必须基于提供的证据，禁止主观臆测；
+\item 结构化输出原则：严格按JSON格式返回，便于后续解析；
+\item 置信度评估原则：每个根因假设需给出置信度（0-1之间的浮点数）；
+\item 诚实透明原则：当证据不足时，明确说明数据缺口，不强行给出结论。
+\end{itemize}
 
-RCA引擎还设计了后备规则分析机制。当大模型调用失败（如超时或解析错误）时，系统自动切换到基于规则的简单分析~\cite{zhang2024rag4itops}：根据异常指标类型推断根因（如CPU异常推断为CPU密集型任务，连接异常推断为连接池问题），确保系统在任何情况下都能返回一定形式的分析结果。
+\textbf{第二部分：上下文输入规范}。将证据融合器输出的分析上下文结构化地组织为Prompt~\cite{zhang2024rag4itops}：
 
-RCA推理的完整流程如算法~\ref{algo:rca-engine}所示。
+\begin{itemize}
+\item 故障背景：服务名称、故障发生时间、问题概述；
+\item 异常指标：各指标的测量值、阈值和偏离程度；
+\item 日志摘要：关键错误类型、出现频次和时间分布；
+\item 检索知识：Top-3相关的SOP文档和历史案例；
+\item 严重程度：故障的综合评估等级。
+\end{itemize}
+
+\textbf{第三部分：推理步骤约束}。引导模型按照规范的逻辑框架展开分析~\cite{liu2023logprompt,roy2024agents}：
+
+（1）\textbf{现象总结}——简洁描述当前异常表现，包括受影响的指标和服务；
+
+（2）\textbf{证据分析}——从指标、日志和知识库中提取支持分析的关键信息；
+
+（3）\textbf{根因假设}——列出1至3个可能的根因，对每个根因给出：置信度（0-1）、支撑证据、反对证据、验证方法；
+
+（4）\textbf{修复建议}——针对最可能的根因给出可操作的修复步骤；
+
+（5）\textbf{数据缺口}——识别现有证据中的不足，提出需要补充的信息。
+
+\textbf{第四部分：输出格式约束}。要求模型按以下JSON Schema输出~\cite{liu2023logprompt}：
+
+\begin{verbatim}
+{
+  "summary": "故障现象总结（1-2句话）",
+  "analysis": {
+    "evidence_summary": "证据分析摘要",
+    "root_causes": [
+      {
+        "cause": "根因描述",
+        "confidence": 0.85,
+        "supporting_evidence": ["证据1", "证据2"],
+        "contradicting_evidence": ["矛盾证据1"],
+        "verification_steps": ["步骤1", "步骤2"]
+      }
+    ],
+    "data_gaps": ["缺口1", "缺口2"]
+  },
+  "primary_fix": {
+    "action": "修复动作描述",
+    "steps": ["步骤1", "步骤2", "步骤3"]
+  },
+  "confidence": 0.85
+}
+\end{verbatim}
+
+上述结构化Prompt的设计参考了LogPrompt~\cite{liu2023logprompt}和SuperLog~\cite{ji2024superlog}的提示工程方法，结合运维故障诊断的任务特点进行了针对性优化。
+
+\subsection{后备规则分析机制}
+
+RCA引擎设计了后备规则分析机制以提高系统的鲁棒性~\cite{zhang2024rag4itops}。当大模型调用失败（如超时、API不可用或JSON解析错误）时，系统自动切换到基于规则的简单分析：
+
+规则映射表定义了常见指标异常与可能根因的对应关系~\cite{zhang2024rag4itops}：
+
+\begin{itemize}
+\item CPU异常 + 高负载 $\rightarrow$ 可能的根因：CPU密集型任务、死循环、资源竞争；
+\item 内存异常 + 持续增长 $\rightarrow$ 可能的根因：内存泄漏、缓存膨胀、对象未释放；
+\item 数据库连接异常 $\rightarrow$ 可能的根因：连接池配置不当、慢查询阻塞、连接泄露；
+\item 网络延迟异常 $\rightarrow$ 可能的根因：网络抖动、DNS解析问题、服务端过载。
+\end{itemize}
+
+后备规则分析的输出格式简化，但仍包含根因假设和修复建议，便于用户参考。
+
+RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=1.2cm,
+    font=\songti\xiaosi,
+    input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm},
+    proc/.style={draw, rounded corners, fill=#1!15, minimum width=3.2cm, minimum height=1cm},
+    output/.style={draw, rounded corners, fill=green!15, minimum width=3cm, minimum height=1cm},
+    decision/.style={draw, diamond, aspect=2, fill=yellow!15, minimum width=2cm},
+    arrow/.style={->, thick}
+]
+
+% 输入
+\node[input] (context) at (0, 3) {AnalysisContext};
+
+% Prompt构建
+\node[proc=blue] (prompt) at (0, 1.5) {构建结构化Prompt};
+
+% LLM调用
+\node[proc=purple] (llm) at (0, 0) {调用LLM API};
+
+% 解析决策
+\node[decision] (parse) at (0, -1.8) {解析成功?};
+
+% 成功分支
+\node[output=green] (success) at (0, -3.5) {结构化诊断结果};
+
+% 失败分支
+\node[proc=orange] (fallback) at (4, -1.8) {后备规则分析};
+
+% 最终结果
+\node[output] (result) at (0, -5.5) {诊断结果输出};
+
+% 连接箭头
+\draw[arrow] (context) -- (prompt);
+\draw[arrow] (prompt) -- (llm);
+\draw[arrow] (llm) -- (parse);
+\draw[arrow] (parse) -- node[anchor=east] {是} (success);
+\draw[arrow] (parse) -- node[anchor=south] {否} (fallback);
+\draw[arrow] (success) -- (result);
+\draw[arrow] (fallback) -- (result);
+
+% 标注
+\node[anchor=south, font=\xiaoliu, color=green] at (0, -3) {JSON格式解析};
+\node[anchor=south, font=\xiaoliu, color=orange] at (4, -1.3) {规则映射};
+
+% Prompt组件标注
+\node[anchor=east, font=\xiaoliu, align=right] at (-4, 1.5) {
+    Prompt包含:\\
+    • 角色设定\\
+    • 上下文规范\\
+    • 推理步骤约束\\
+    • 输出格式要求
+};
+
+\end{tikzpicture}
+\caption{RCA推理引擎工作流程}
+\label{fig:rca-engine-flow}
+\end{figure}
+
+RCA推理的伪代码实现如算法~\ref{algo:rca-engine}所示。
 
 \begin{algorithm}
 \caption{RCA推理算法}
@@ -70,25 +509,105 @@ RCA推理的完整流程如算法~\ref{algo:rca-engine}所示。
 \SetKwInput{KwOut}{输出}
 \KwIn{$context$}
 \KwOut{$result$}
-\nl $prompt$ $\gets$ 根据上下文构建结构化Prompt\;
-\nl $raw\_response$ $\gets$ 调用大语言模型API\;
-\nl \If{解析成功}{
-    \nl \Return{结构化RCAResult}
+\nl $prompt$ $\gets$ BuildRCAPrompt($context$)\;
+\nl \Try{
+    \nl $raw\_response$ $\gets$ CallLLMAPI($prompt$)\;
+    \nl $result$ $\gets$ ParseJSON($raw\_response$)\;
+    \nl \If{$result$ is valid}{
+        \nl \Return{$result$}
+    }
 }
-\nl \Else{
-    \nl $result$ $\gets$ 调用后备规则分析\;
+\nl \Catch{APIError or ParseError}{
+    \nl \tcp{降级到后备规则分析}
+    \nl $result$ $\gets$ RuleBasedAnalysis($context$.anomaly\_indicators)\;
     \nl \Return{$result$}
 }
 \end{algorithm}
 
 \section{原型系统实现}
 
-原型系统采用前后端分离架构。前端基于Streamlit框架构建，提供故障诊断、知识查询、监控展示和实验评估四个人机交互入口。用户通过自然语言向系统提问，系统返回包含根因分析、置信度和修复建议的结构化诊断结果。
+原型系统采用Python语言开发，技术栈包括Streamlit、FastAPI、ChromaDB和OpenAI API~\cite{zhang2024rag4itops}。
 
-后端基于FastAPI框架实现，提供分析、知识检索和实验评估等RESTful接口。后端整合了知识检索服务、日志服务、指标服务和模型调用服务等模块~\cite{zhang2024rag4itops}。
+\subsection{前端实现}
 
-端到端的RAG Pipeline执行流程为：接收用户问题后，首先调用知识检索服务获取相关SOP文档和历史案例；然后调用日志和指标服务获取实时故障信息；接着通过证据融合器将多源信息统一组织为分析上下文；最后调用RCA推理引擎生成诊断结果并返回给用户。
+前端基于Streamlit框架构建~\cite{zhang2024rag4itops}，提供四个人机交互入口：
+
+（1）\textbf{故障诊断界面}：用户输入故障描述，系统返回结构化诊断结果。支持Markdown格式的结果展示，包括根因分析、置信度评分和修复建议~\cite{liu2023logprompt}。
+
+（2）\textbf{知识查询界面}：用户可直接查询运维知识库，查看SOP文档和历史故障案例~\cite{zhang2024rag4itops}。
+
+（3）\textbf{监控展示界面}：展示实时监控指标和告警信息~\cite{pham2024rcacausal}。
+
+（4）\textbf{实验评估界面}：支持批量运行测试场景，查看评估指标和对比结果。
+
+前端界面采用卡片式布局，核心诊断结果以结构化卡片形式呈现，便于用户快速获取关键信息。
+
+\subsection{后端实现}
+
+后端基于FastAPI框架实现~\cite{zhang2024rag4itops}，主要模块包括：
+
+（1）\textbf{诊断服务}（/api/diagnose）：接收故障描述，协调知识检索、证据融合和RCA推理，返回诊断结果~\cite{roy2024agents}。
+
+（2）\textbf{知识检索服务}（/api/knowledge/search）：封装向量检索逻辑，支持按服务名、故障类型等维度过滤~\cite{zhang2024rag4itops}。
+
+（3）\textbf{实验评估服务}（/api/experiment）：支持批量运行预设测试场景，计算评估指标~\cite{liu2023logprompt}。
+
+后端采用异步IO模型，能够高效处理并发请求~\cite{zhang2024rag4itops}。与ChromaDB的连接采用连接池管理，与OpenAI API的交互采用流式响应，支持打字机效果的实时输出~\cite{liu2023logprompt}。
+
+端到端的诊断Pipeline执行流程为：接收用户问题后，首先调用知识检索服务获取相关文档；然后调用日志和指标服务获取实时故障信息；接着通过证据融合器将多源信息统一组织为分析上下文；最后调用RCA推理引擎生成诊断结果~\cite{zhang2024rag4itops,roy2024agents}。
+
+整个Pipeline的执行流程如图~\ref{fig:pipeline-flow}所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=0.8cm,
+    font=\songti\xiaosi,
+    step/.style={draw, rounded corners, fill=#1!15, minimum width=3cm, minimum height=0.8cm, align=center},
+    arrow/.style={->, thick, >=stealth}
+]
+
+% Pipeline步骤
+\node[step=blue] (input) at (0, 0) {1. 用户输入\\故障描述};
+
+\node[step=green] (retrieve) at (0, -1.5) {2. 知识检索\\获取SOP和案例};
+
+\node[step=orange] (data) at (0, -3) {3. 获取实时数据\\日志 + 监控指标};
+
+\node[step=purple] (fusion) at (0, -4.5) {4. 证据融合\\构建分析上下文};
+
+\node[step=red] (rca) at (0, -6) {5. RCA推理\\根因分析};
+
+\node[step=blue] (output) at (0, -7.5) {6. 输出诊断结果\\JSON格式};
+
+% 水平标注
+\node[anchor=east, font=\xiaoliu, color=green] at (-4.5, -1.5) {ChromaDB检索};
+\node[anchor=east, font=\xiaoliu, color=orange] at (-4.5, -3) {日志/指标服务};
+\node[anchor=east, font=\xiaoliu, color=purple] at (-4.5, -4.5) {EvidenceBuilder};
+\node[anchor=east, font=\xiaoliu, color=red] at (-4.5, -6) {LLM + 结构化Prompt};
+
+% 连接
+\draw[arrow] (input) -- (retrieve);
+\draw[arrow] (retrieve) -- (data);
+\draw[arrow] (data) -- (fusion);
+\draw[arrow] (fusion) -- (rca);
+\draw[arrow] (rca) -- (output);
+
+% 返回标注
+\node[anchor=west, font=\xiaoliu, color=gray] at (3.5, -4.5) {
+    返回内容:\\
+    • 故障摘要\\
+    • 根因假设\\
+    • 置信度评分\\
+    • 修复建议
+};
+
+\end{tikzpicture}
+\caption{端到端诊断Pipeline流程}
+\label{fig:pipeline-flow}
+\end{figure}
 
 \section{本章小结}
 
-本章介绍了LLM-Ops Copilot原型系统的设计与实现。系统通过构建面向运维领域的知识库，利用检索增强生成技术获取领域知识背景；通过证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
+本章详细介绍了LLM-Ops Copilot原型系统的设计与实现。系统通过构建面向运维领域的知识库，利用检索增强生成技术获取领域知识背景~\cite{zhang2024rag4itops}；通过证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
