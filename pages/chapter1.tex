@@ -26,13 +26,13 @@
 
 \subsection{基于大模型的智能运维研究进展}
 
-随着大语言模型技术的快速发展，越来越多的研究开始关注其在软件工程与运维管理中的应用潜力~\cite{liu2024agentsurvey,vitui2025empowering}。相比传统机器学习方法，大语言模型具备更强的自然语言理解和语义推理能力，能够直接处理日志文本~\cite{ji2024superlog}、告警描述、运维手册和用户问题等非结构化信息，因此在日志分析、事件摘要、根因分析和运维问答等场景中展现出较高的应用价值~\cite{ji2025loganalysis}。
+随着大语言模型技术的快速发展，越来越多的研究开始关注其在软件工程与运维管理中的应用潜力~\cite{liu2024agentsurvey,vitui2025empowering}。相比传统机器学习方法，大语言模型具备更强的自然语言理解和语义推理能力，能够直接处理日志文本~\cite{ji2024superlog}、告警描述、运维手册和用户问题等非结构化信息，因此在日志分析、事件摘要、根因分析和运维问答等场景中展现出较高的应用价值~\cite{ji2024superlog}。
 
 当前，国外研究主要集中在以下几个方面。
 
-第一，利用大语言模型提升日志分析能力~\cite{liu2023logprompt}。例如，Liu等人提出的LogPrompt方法~\cite{liu2024online}通过设计面向日志分析的提示模板，使大语言模型能够识别异常日志、分类日志类型并生成可解释的分析结果。Ji等人提出的SuperLog方法~\cite{ji2024superlog}则探索了如何将领域知识注入大语言模型的日志分析流程，实现更细粒度的异常识别。
+第一，利用大语言模型提升日志分析能力~\cite{liu2023logprompt}。例如，Liu等人提出的LogPrompt方法~\cite{liu2023logprompt}通过设计面向日志分析的提示模板，使大语言模型能够识别异常日志、分类日志类型并生成可解释的分析结果。Ji等人提出的SuperLog方法~\cite{ji2024superlog}则探索了如何将领域知识注入大语言模型的日志分析流程，实现更细粒度的异常识别。
 
-第二，将大语言模型与检索增强生成技术相结合~\cite{zhang2024rag4itops,jain2025ragjourney}。例如，Zhang等人提出的RAG4ITOps框架~\cite{zhang2024rag4itops}通过构建面向IT运维的知识库，使模型能够访问外部知识、历史故障案例和运维文档，提高对专业领域问题的回答质量。Roy等人的研究~\cite{roy2024ragincident,isaza2024ragincident}则探索了RAG技术在IT支持事件解决推荐中的应用。
+第二，将大语言模型与检索增强生成技术相结合~\cite{zhang2024rag4itops,jain2025ragjourney}。例如，Zhang等人提出的RAG4ITOps框架~\cite{zhang2024rag4itops}通过构建面向IT运维的知识库，使模型能够访问外部知识、历史故障案例和运维文档，提高对专业领域问题的回答质量。Roy等人的研究~\cite{isaza2024ragincident}则探索了RAG技术在IT支持事件解决推荐中的应用。
 
 第三，探索基于大语言模型的根因分析方法~\cite{roy2024agents,tdc2025anomaly}。例如，Szandała等人的研究~\cite{szandala2025reliability}评估了大语言模型在混沌工程场景下进行自动根因分析的能力。Roy等人~\cite{roy2024agents}则系统性地探索了基于代理的根因分析方法，分析了大语言模型在多跳推理和因果推断方面的潜力。
 
