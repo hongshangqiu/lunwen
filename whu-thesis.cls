@@ -183,8 +183,9 @@
 %%% ---- 引入宏包 ----- %%%
 \RequirePackage { amsmath , amssymb , amsthm , mathtools }
 
-\RequirePackage { tikz, pgfplots } % 绘图
-\usetikzlibrary{positioning,shapes.geometric}
+\RequirePackage { tikz }
+\usetikzlibrary{arrows.meta}
+\RequirePackage { pgfplots }
 \pgfplotsset { compat = 1.17 }
 \RequirePackage [ normalem ] { ulem }
 

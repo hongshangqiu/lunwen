@@ -24,41 +24,33 @@
 
 \begin{figure}[htbp]
 \centering
-%\includegraphics[width=0.95\textwidth]{figures/system-architecture.pdf}
-%\begin{tikzpicture}[node distance=1.5cm, auto, >=latex']
 \begin{tikzpicture}[
-    node distance=0.8cm,
-    >=latex',
     block/.style={rectangle, draw, fill=blue!10, rounded corners, minimum height=0.8cm, minimum width=2.5cm, font=\small},
     datablock/.style={rectangle, draw, fill=green!10, rounded corners, minimum height=0.7cm, minimum width=2.2cm, font=\small},
-    arrow/.style={->, thick},
+    arrow/.style={->, >=latex, thick},
     label/.style={text width=3cm, font=\small\itshape, align=center}
 ]
 
-% 用户交互层
-\node[block, fill=blue!20] (frontend) {前端展示层（Streamlit）};
+% 用户交互层 (0, 0)
+\node[block, fill=blue!20] (frontend) at (0, 0) {前端展示层（Streamlit）};
 
-% 服务接口层
-\node[block, below=1cm of frontend, fill=orange!20] (api) {后端服务层（FastAPI）};
+% 服务接口层 (0, -1.5)
+\node[block, fill=orange!20] (api) at (0, -1.5) {后端服务层（FastAPI）};
 
-% 业务逻辑层
-\node[block, below=1cm of api, fill=purple!15] (rag) {RAG Pipeline};
-\node[block, below=0.5cm of rag, fill=purple!15] (rca) {RCA Engine};
-\node[block, below=0.5cm of rca, fill=purple!15] (eval) {Evaluation};
+% 业务逻辑层 (0, -3)
+\node[block, fill=purple!15] (rag) at (0, -3) {RAG Pipeline};
+\node[block, fill=purple!15] (rca) at (0, -4) {RCA Engine};
+\node[block, fill=purple!15] (eval) at (0, -5) {Evaluation};
 
-% 数据处理层
-\node[block, below=1cm of eval, fill=yellow!20] (knowledge) {知识检索服务};
-\node[block, left=0.5cm of knowledge, fill=yellow!20] (logs) {日志服务};
-\node[block, right=0.5cm of knowledge, fill=yellow!20] (metrics) {指标服务};
+% 数据处理层 (0, -6.5)
+\node[block, fill=yellow!20] (knowledge) at (0, -6.5) {知识检索服务};
+\node[block, fill=yellow!20] (logs) at (-3, -6.5) {日志服务};
+\node[block, fill=yellow!20] (metrics) at (3, -6.5) {指标服务};
 
-% 数据存储层
-\node[datablock, below=1cm of knowledge, fill=green!20] (chroma) {向量数据库\\（ChromaDB）};
-\node[datablock, left=1cm of chroma, fill=green!20] (logstore) {日志存储};
-\node[datablock, right=1cm of chroma, fill=green!20] (metricstore) {指标存储};
-
-% 标注层
-\node[label, left=3cm of api, anchor=east] (user) {用户\\自然语言输入};
-\node[label, right=3cm of api, anchor=west] (output) {分析结果\\故障诊断};
+% 数据存储层 (0, -8)
+\node[datablock, fill=green!20] (chroma) at (0, -8) {向量数据库\\(ChromaDB)};
+\node[datablock, fill=green!20] (logstore) at (-3, -8) {日志存储};
+\node[datablock, fill=green!20] (metricstore) at (3, -8) {指标存储};
 
 % 连接线
 \draw[arrow] (frontend) -- (api);
@@ -71,15 +63,12 @@
 \draw[arrow] (knowledge) -- (chroma);
 \draw[arrow] (logs) -- (logstore);
 \draw[arrow] (metrics) -- (metricstore);
+
+% 标注层
+\node[label] (user) at (-5, 0) {用户\\自然语言输入};
+\node[label] (output) at (5, 0) {分析结果\\故障诊断};
 \draw[arrow] (user) -- (frontend);
 \draw[arrow] (output) -- (frontend);
-
-% 层级标注
-\node[align=center, anchor=north west] at (-4.5, 0.5) {\small\textbf{用户交互层}};
-\node[align=center, anchor=north west] at (-4.5, -0.5) {\small\textbf{服务接口层}};
-\node[align=center, anchor=north west] at (-4.5, -2.5) {\small\textbf{业务逻辑层}};
-\node[align=center, anchor=north west] at (-4.5, -4.5) {\small\textbf{数据处理层}};
-\node[align=center, anchor=north west] at (-4.5, -6.5) {\small\textbf{数据存储层}};
 
 \end{tikzpicture}
 \caption{LLM-Ops Copilot系统架构图}
@@ -138,19 +127,17 @@
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
-    node distance=1cm,
-    >=latex',
-    startstop/.style={rectangle, rounded corners, draw, fill=green!20, minimum height=0.6cm},
-    io/.style={trapezium, trapezium left angle=70, trapezium right angle=70, draw, fill=blue!10, minimum height=0.6cm},
-    process/.style={rectangle, draw, fill=orange!20, rounded corners, minimum height=0.6cm},
-    arrow/.style={->, thick}
+    startstop/.style={rectangle, rounded corners, draw, fill=green!20, minimum height=0.6cm, minimum width=2cm},
+    io/.style={rectangle, draw, fill=blue!10, minimum height=0.6cm, minimum width=2cm},
+    process/.style={rectangle, draw, fill=orange!20, rounded corners, minimum height=0.6cm, minimum width=2cm},
+    arrow/.style={->, >=latex, thick}
 ]
 
-\node[startstop] (docs) {运维文档};
-\node[process, right=1cm of docs] (clean) {文档清理与格式化};
-\node[process, right=1cm of clean] (split) {文本切分};
-\node[process, right=1cm of split] (embed) {向量化嵌入};
-\node[io, right=1cm of embed, fill=green!20] (store) {ChromaDB\\向量数据库};
+\node[startstop] (docs) at (0, 0) {运维文档};
+\node[process] (clean) at (3, 0) {文档清理与格式化};
+\node[process] (split) at (6, 0) {文本切分};
+\node[process] (embed) at (9, 0) {向量化嵌入};
+\node[io, fill=green!20] (store) at (12, 0) {ChromaDB\\向量数据库};
 
 \draw[arrow] (docs) -- (clean);
 \draw[arrow] (clean) -- (split);
