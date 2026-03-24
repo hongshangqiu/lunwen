@@ -47,21 +47,21 @@ S7 & 磁盘空间不足 & 磁盘使用率超过95\%，日志写入失败 \\
 
 \subsection{对照实验结果}
 
-本文设计了三组对照实验，如表~\ref{tab:contrast-results}所示。
+本文设计了两组对照实验，如表~\ref{tab:contrast-results}所示。
 
 \begin{table}[htbp]
 \centering
 \caption{对照实验结果}
 \label{tab:contrast-results}
-\begin{tabular}{lcccc}
+\begin{tabular}{p{2.2cm}cccc}
 \toprule
-实验方案 & 准确率 & Top-3准确率 & 平均响应时间/s & 证据覆盖率 \\
+实验方案 & 准确率 & Top-3准确率 & 响应时间/s & 证据覆盖率 \\
 \midrule
 LLM-Only（仅大模型） & 3/7 & 4/7 & 2.1 & 0\% \\
 Full-Method（完整方案） & 6/7 & 7/7 & 4.3 & 78\% \\
 \midrule
 \midrule
-场景 & Full-Method根因 & 真实根因 & 命中 \\
+场景 & Full-Method根因 & 真实根因 & \multicolumn{2}{c}{命中} \\
 \midrule
 S1 & CPU使用率过高 & CPU过载 & \checkmark \\
 S2 & 内存占用持续增长 & 内存泄漏 & \checkmark \\
