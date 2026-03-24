@@ -107,11 +107,8 @@
 \vspace{0.5cm}
 \begin{center}
 \textbf{技术路线图}\\[0.3cm]
-\begin{tikzpicture}[
-    level distance=1.5cm,
-    grow=right,
-    every node/.style={draw, fill=blue!10, rounded corners, minimum height=0.8cm, minimum width=2.5cm}
-]
+\begin{tikzpicture}[level distance=1.5cm, grow=right]
+\tikzstyle{every node}=[draw, fill=blue!10, rounded corners, minimum height=0.8cm, minimum width=2.5cm]
 \node {需求分析} child {node {知识库构建}}
 child {node {数据融合}}
 child {node {RCA引擎}}
