@@ -47,7 +47,7 @@
 \node[block, fill=yellow!20] (metrics) at (2.5, -7.5) {指标服务};
 
 % 数据存储层
-\node[datablock, fill=green!20] (chroma) at (0, -9) {向量数据库\\(ChromaDB)};
+\node[datablock, fill=green!20] (chroma) at (0, -9) {向量数据库(ChromaDB)};
 \node[datablock, fill=green!20] (logstore) at (-2.5, -10) {日志存储};
 \node[datablock, fill=green!20] (metricstore) at (2.5, -10) {指标存储};
 
@@ -130,7 +130,7 @@
 \node[process] (clean) at (2.5, 0) {文档清理与格式化};
 \node[process] (split) at (5, 0) {文本切分};
 \node[process] (embed) at (7.5, 0) {向量化嵌入};
-\node[io, fill=green!20] (store) at (10, 0) {ChromaDB\\向量数据库};
+\node[io, fill=green!20] (store) at (10, 0) {ChromaDB 向量数据库};
 
 \draw[arrow] (docs) -- (clean);
 \draw[arrow] (clean) -- (split);
