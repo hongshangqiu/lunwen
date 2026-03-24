@@ -184,8 +184,9 @@
 \RequirePackage { amsmath , amssymb , amsthm , mathtools }
 
 \RequirePackage { tikz, pgfplots } % 绘图
-\usetikzlibrary{positioning,shapes.geometric}
-\pgfplotsset { compat = 1.17 }
+% TeX Live 2025 下 positioning / shapes.geometric 与当前 pgfkeys 链偶发冲突，
+% 会导致 node distance、on grid 等键失效，图中节点重叠。正文图均用绝对坐标即可。
+\pgfplotsset { compat = 1.18 }
 \RequirePackage [ normalem ] { ulem }
 
 \RequirePackage { physics }
@@ -200,6 +201,8 @@
 \SetAlgoCaptionSeparator
   { \hbox_to_wd:nn { 1 em - \box_wd:N \l__whu_space_box } {} }
 % 算法标题后会跟一个不间断空格 ~，这里将其宽度减掉
+\SetAlCapSkip { 1 \baselineskip }
+\setlength { \interspacealgoruled } { 0.8 \baselineskip }
 
 %%% ---- 定义页面样式 ----- %%%
 \RequirePackage { geometry }

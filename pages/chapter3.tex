@@ -25,8 +25,8 @@
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
-    block/.style={rectangle, draw, fill=blue!10, rounded corners, minimum height=0.8cm, minimum width=2.5cm, font=\small},
-    datablock/.style={rectangle, draw, fill=green!10, rounded corners, minimum height=0.7cm, minimum width=2.2cm, font=\small},
+    block/.style={rectangle, draw, fill=blue!10, rounded corners, minimum height=0.85cm, minimum width=2.6cm, font=\small, align=center},
+    datablock/.style={rectangle, draw, fill=green!10, rounded corners, minimum height=0.75cm, minimum width=2.4cm, font=\small, align=center},
     arrow/.style={->, thick}
 ]
 
@@ -34,31 +34,33 @@
 \node[block, fill=blue!20] (frontend) at (0, 0) {前端展示层（Streamlit）};
 
 % 服务接口层
-\node[block, fill=orange!20] (api) at (0, -1.5) {后端服务层（FastAPI）};
+\node[block, fill=orange!20] (api) at (0, -2.2) {后端服务层（FastAPI）};
 
-% 业务逻辑层
-\node[block, fill=purple!15] (rag) at (0, -3) {RAG Pipeline};
-\node[block, fill=purple!15] (rca) at (0, -4) {RCA Engine};
-\node[block, fill=purple!15] (eval) at (0, -5) {Evaluation};
+% 业务逻辑层（横向排布，避免竖向挤在一起）
+\node[block, fill=purple!15] (rag) at (-2.7, -4.6) {RAG Pipeline};
+\node[block, fill=purple!15] (rca) at (0, -4.6) {RCA Engine};
+\node[block, fill=purple!15] (eval) at (2.7, -4.6) {Evaluation};
 
 % 数据处理层
-\node[block, fill=yellow!20] (knowledge) at (0, -6.5) {知识检索服务};
-\node[block, fill=yellow!20] (logs) at (-2.5, -7.5) {日志服务};
-\node[block, fill=yellow!20] (metrics) at (2.5, -7.5) {指标服务};
+\node[block, fill=yellow!20] (knowledge) at (0, -6.9) {知识检索服务};
+\node[block, fill=yellow!20] (logs) at (-2.7, -8.6) {日志服务};
+\node[block, fill=yellow!20] (metrics) at (2.7, -8.6) {指标服务};
 
 % 数据存储层
-\node[datablock, fill=green!20] (chroma) at (0, -9) {向量数据库(ChromaDB)};
-\node[datablock, fill=green!20] (logstore) at (-2.5, -10) {日志存储};
-\node[datablock, fill=green!20] (metricstore) at (2.5, -10) {指标存储};
+\node[datablock, fill=green!20] (chroma) at (0, -10.5) {向量数据库(ChromaDB)};
+\node[datablock, fill=green!20] (logstore) at (-2.7, -12) {日志存储};
+\node[datablock, fill=green!20] (metricstore) at (2.7, -12) {指标存储};
 
 % 连接线
 \draw[arrow] (frontend) -- (api);
 \draw[arrow] (api) -- (rag);
 \draw[arrow] (api) -- (rca);
 \draw[arrow] (api) -- (eval);
-\draw[arrow] (rag) -- (knowledge);
-\draw[arrow] (logs) -- ++(0, 1) -| (knowledge);
-\draw[arrow] (metrics) -- ++(0, 1) -| (knowledge);
+\draw[arrow] (rag) -- +(0, -0.45) -| (knowledge.north);
+\draw[arrow] (rca) -- (knowledge);
+\draw[arrow] (eval) -- +(0, -0.45) -| (knowledge.north);
+\draw[arrow] (logs) -- ++(0, 1.1) -| (knowledge);
+\draw[arrow] (metrics) -- ++(0, 1.1) -| (knowledge);
 \draw[arrow] (knowledge) -- (chroma);
 \draw[arrow] (logs) -- (logstore);
 \draw[arrow] (metrics) -- (metricstore);
@@ -120,17 +122,17 @@
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
-    startstop/.style={rectangle, rounded corners, draw, fill=green!20, minimum height=0.6cm, minimum width=1.8cm},
-    io/.style={rectangle, draw, fill=blue!10, minimum height=0.6cm, minimum width=1.8cm},
-    process/.style={rectangle, draw, fill=orange!20, rounded corners, minimum height=0.6cm, minimum width=1.8cm},
+    startstop/.style={rectangle, rounded corners, draw, fill=green!20, minimum height=0.7cm, minimum width=2cm, align=center, font=\small},
+    io/.style={rectangle, draw, fill=blue!10, minimum height=0.7cm, minimum width=2.1cm, align=center, font=\small},
+    process/.style={rectangle, draw, fill=orange!20, rounded corners, minimum height=0.7cm, minimum width=2.1cm, align=center, font=\small},
     arrow/.style={->, thick}
 ]
 
 \node[startstop] (docs) at (0, 0) {运维文档};
-\node[process] (clean) at (2.5, 0) {文档清理与格式化};
-\node[process] (split) at (5, 0) {文本切分};
-\node[process] (embed) at (7.5, 0) {向量化嵌入};
-\node[io, fill=green!20] (store) at (10, 0) {ChromaDB 向量数据库};
+\node[process] (clean) at (3.15, 0) {文档清理与格式化};
+\node[process] (split) at (6.3, 0) {文本切分};
+\node[process] (embed) at (9.45, 0) {向量化嵌入};
+\node[io, fill=green!20] (store) at (12.85, 0) {ChromaDB\\向量数据库};
 
 \draw[arrow] (docs) -- (clean);
 \draw[arrow] (clean) -- (split);
@@ -318,7 +320,8 @@ metricResults & 各指标统计结果列表 \\
 $anomalies \gets \Extract{metrics}$\;
 $severity \gets \Assess{metrics, logs, anomalies}$\;
 $context \gets \Build{question, service, time\_range, knowledge, metrics, logs, anomalies, severity}$\;
-\Return{$context$}
+\Return{$context$}\;
+\vspace{0.75\baselineskip}
 
 \end{algorithm}
 
@@ -471,7 +474,8 @@ $is\_valid, parsed \gets \Validate{raw\_response}$\;
     \Return{$result$}
 }
 $result \gets \Parse{parsed}$\;
-\Return{$RCAResult(result)$}
+\Return{$RCAResult(result)$}\;
+\vspace{0.75\baselineskip}
 
 \end{algorithm}
 
@@ -538,7 +542,8 @@ $logs \gets \QueryL{service, time\_range}$\;
 $context \gets \BuildC{question, service, time\_range, knowledge, metrics, logs}$\;
 $result \gets \RunRCA{context}$\;
 $elapsed\_time \gets \Measure{}$\;
-\Return{$\BuildR{context, result, elapsed\_time}$}
+\Return{$\BuildR{context, result, elapsed\_time}$}\;
+\vspace{0.75\baselineskip}
 
 \end{algorithm}
 

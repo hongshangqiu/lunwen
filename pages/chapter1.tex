@@ -108,15 +108,20 @@
 \begin{center}
 \textbf{技术路线图}\\[0.3cm]
 \begin{tikzpicture}[
-    level distance=1.5cm,
-    grow=right,
-    every node/.style={draw, fill=blue!10, rounded corners, minimum height=0.8cm, minimum width=2.5cm}
+    arr/.style={->, thick},
+    box/.style={draw, fill=blue!10, rounded corners, minimum height=0.85cm, minimum width=3cm, align=center, font=\small}
 ]
-\node {需求分析} child {node {知识库构建}}
-child {node {数据融合}}
-child {node {RCA引擎}}
-child {node {原型实现}}
-child {node {实验验证}};
+\node[box] (n1) at (0, 0) {需求分析};
+\node[box] (n2) at (0, -2.1) {知识库构建};
+\node[box] (n3) at (0, -4.2) {数据融合};
+\node[box] (n4) at (0, -6.3) {RCA引擎};
+\node[box] (n5) at (0, -8.4) {原型实现};
+\node[box] (n6) at (0, -10.5) {实验验证};
+\draw[arr] (n1.south) -- (n2.north);
+\draw[arr] (n2.south) -- (n3.north);
+\draw[arr] (n3.south) -- (n4.north);
+\draw[arr] (n4.south) -- (n5.north);
+\draw[arr] (n5.south) -- (n6.north);
 \end{tikzpicture}
 \end{center}
 \vspace{0.5cm}
