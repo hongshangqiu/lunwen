@@ -17,6 +17,10 @@
         direction      = {软件工程},
         keywords       = {大模型, 软件运维, AIOps, 智能运维},
       },
+    style              =
+      {
+        cjk-font      = {fandol},
+      },
     element            =
       {
         abstract       = {pages/abstract},
@@ -26,6 +30,11 @@
         appendix       = {pages/appendix}
       }
   }
+
+% 消除 siunitx 与 physics 包的警告
+\AtBeginDocument{%
+  \RenewCommandCopy\qty\SI%
+}
 
 \begin{document}
 %%----------- 主体部分 ----------- %%

@@ -187,7 +187,6 @@
 \pgfplotsset { compat = 1.17 }
 \RequirePackage [ normalem ] { ulem }
 
-\RequirePackage { physics }
 \RequirePackage { siunitx }
 
 \RequirePackage { algorithm2e }     % 算法代码
@@ -546,16 +545,19 @@
   {
     \setCJKmainfont {#1} [#2]
     \newCJKfontfamily { \songti } {#1} [#2]
+    \setCJKfamilyfont { song } {#1} [#2]
   }
 \cs_new_protected:Npn \__whu_set_cjk_font_hei:nn #1#2
   {
     \setCJKsansfont {#1} [#2]
     \newCJKfontfamily { \heiti } {#1} [#2]
+    \setCJKfamilyfont { hei } {#1} [#2]
   }
 \cs_new_protected:Npn \__whu_set_cjk_font_fang:nn #1#2
   {
     \setCJKmonofont {#1} [#2]
     \newCJKfontfamily { \fangsong } {#1} [#2]
+    \setCJKfamilyfont { FangSong } {#1} [#2]
     \cs_new:Npn \__whu_set_spine_font:
       {
         \exp_not:N \setmainjfont {#1}
@@ -570,6 +572,7 @@
 \cs_new_protected:Npn \__whu_set_cjk_font_kai:nn #1#2
   {
     \newCJKfontfamily { \kaishu } {#1} [#2]
+    \setCJKfamilyfont { kai } {#1} [#2]
   }
 
 \cs_new_protected:Npn \__whu_set_cjk_font_windows:
