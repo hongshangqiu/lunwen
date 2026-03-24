@@ -30,12 +30,20 @@
 
 \begin{table}[htbp]
 \centering
-\small
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.12}
 \caption{测试场景设计}
 \label{tab:test-scenes}
-\begin{tabularx}{\textwidth}{@{}>{\ttfamily\footnotesize\raggedright\arraybackslash}p{2.35cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.35cm} c >{\raggedright\arraybackslash}X@{}}
+\begingroup
+\small
+\setlength{\tabcolsep}{7pt}
+\renewcommand{\arraystretch}{1.25}
+% 固定列宽 + 足够列间距，避免 tabularx 与多列 p{} 混用时挤在一起、文字重叠
+\begin{tabular}{@{}%
+  >{\ttfamily\small\raggedright\arraybackslash}p{3.05cm}
+  >{\raggedright\arraybackslash}p{2.55cm}
+  >{\ttfamily\small\raggedright\arraybackslash}p{3.05cm}
+  >{\centering\arraybackslash}p{1.4cm}
+  >{\raggedright\arraybackslash}p{\dimexpr\textwidth-3.05cm-2.55cm-3.05cm-1.4cm-8\tabcolsep\relax}%
+@{}}
 \toprule
 场景ID & 场景名称 & 故障类型 & 难度 & 预期根因 \\
 \midrule
@@ -47,7 +55,8 @@ scene\_slow\_sql & 慢SQL查询 & SLOW\_SQL & Medium & SQL查询缺少索引 \\
 scene\_service\_avalanche & 服务雪崩 & SERVICE\_AVALANCHE & Hard & 依赖服务故障导致级联失败 \\
 scene\_disk\_full & 磁盘空间不足 & DISK\_FULL & Easy & 日志文件未轮转 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
+\endgroup
 \end{table}
 
 这些场景涵盖了从简单到复杂的多种故障类型，能够较全面地评估系统在不同运维任务中的表现。其中，Easy难度场景用于验证系统在基本故障场景下的诊断能力，Medium难度场景用于测试系统在较复杂故障场景下的分析能力，Hard难度场景则用于评估系统在复杂故障传播场景下的根因分析能力。
