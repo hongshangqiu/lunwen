@@ -8,18 +8,21 @@
     info               =
       {
         title          = {基于大模型的软件运维方法},
+        title*         = {Large Language Model Based Software Operations and Maintenance Method},
         student-number = {2022302111044},
         school         = {计算机学院},
         author         = {崔晋闻},
+        author*        = {Cui Jinwen},
         subject        = {计算机科学与技术},
         major          = {软件工程},
         advisor-name   = {应时},
         direction      = {软件工程},
         keywords       = {大模型, 软件运维, AIOps, 智能运维},
+        keywords*      = {Large Language Models, Software Operations and Maintenance, AIOps, Intelligent Operations},
       },
     style              =
       {
-        cjk-font      = {fandol},
+        graphics-path  = {{figures/},{data/}},
       },
     element            =
       {
@@ -30,11 +33,6 @@
         appendix       = {pages/appendix}
       }
   }
-
-% 消除 siunitx 与 physics 包的警告
-\AtBeginDocument{%
-  \RenewCommandCopy\qty\SI%
-}
 
 \begin{document}
 %%----------- 主体部分 ----------- %%
