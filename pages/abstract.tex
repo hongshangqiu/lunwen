@@ -1,18 +1,7 @@
-% 中英文摘要
+% 中文摘要
 
-\begin{cnabstract}{大语言模型；软件运维；检索增强生成；根因分析；ChatOps}
 随着云计算、微服务与容器化技术的广泛应用，现代软件系统的结构日益复杂，传统依赖人工经验和固定规则的软件运维方法在面对海量日志、监控指标和告警信息时，逐渐暴露出分析效率低、定位周期长、自动化程度不足等问题。为提升复杂系统中的故障诊断与运维决策能力，本文围绕基于大语言模型的软件运维方法展开研究，提出一种融合检索增强生成与多源运维数据分析的智能运维方案。
 
 本文首先构建面向运维场景的领域知识库，对运维手册、历史故障记录、常见问题处理文档等私有知识进行整理、切分、向量化与索引，以增强大语言模型在特定场景下的知识获取能力；其次，结合日志、监控指标等多源运维数据，研究运维信息的关联组织与上下文构建方法，引导模型完成故障摘要生成、异常原因分析与根因推断；在此基础上，设计自然语言交互式原型系统，使用户能够通过对话方式完成运维知识查询、故障诊断与辅助决策。最后，通过典型软件故障场景对所提方法进行验证，分析其在运维问答、故障定位与根因分析中的应用可行性。
 
 研究表明，将大语言模型引入软件运维流程，并结合领域知识库与实时数据，可为智能运维提供更加自然、高效和可扩展的技术路径，也为从传统 AIOps 向更高层次的自主运维演进提供了参考。
-\end{cnabstract}
-
-\begin{enabstract}{Large Language Models; Software Operations and Maintenance; Retrieval-Augmented Generation; Root Cause Analysis; ChatOps}
-
-With the widespread adoption of cloud computing, microservices, and containerization, modern software systems have become increasingly complex. Traditional software operations and maintenance methods, which rely heavily on manual experience and rule-based scripts, are no longer sufficient when facing massive volumes of logs, monitoring metrics, and alert data. To improve fault diagnosis and operational decision-making in complex systems, this thesis investigates a software operations and maintenance method based on large language models and proposes an intelligent solution that integrates retrieval-augmented generation with multi-source operations data analysis.
-
-First, a domain-specific knowledge base for operations and maintenance is constructed by organizing, segmenting, vectorizing, and indexing private knowledge sources such as operation manuals, historical incident records, and troubleshooting documents, thereby enhancing the model's ability to acquire task-relevant knowledge. Second, by combining multiple types of operations data, including logs and monitoring metrics, methods for information association and contextual organization are studied to support fault summarization, anomaly cause analysis, and root cause inference. On this basis, a natural language interactive prototype system is designed, enabling users to perform knowledge querying, fault diagnosis, and decision support through conversational interaction. Finally, typical software fault scenarios are used to verify the feasibility of the proposed method and to analyze its applicability in operations question answering, fault localization, and root cause analysis.
-
-The study shows that introducing large language models into the software operations workflow, together with domain knowledge bases and real-time data, can provide a more natural, efficient, and scalable technical path for intelligent operations and maintenance, and can also serve as a useful reference for the evolution from traditional AIOps toward more autonomous operations.
-\end{enabstract}
