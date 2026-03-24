@@ -1,0 +1,29 @@
+# 武汉大学论文模板参考文件（本地使用，不要上传）
+whu_thesis_2024__1_/
+
+# LaTeX 编译产生的临时文件
+*.synctex.gz
+*.synctex.gz(busy)
+*.synctex(busy)
+*.fls
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fdb_latexmk
+*.snm
+*.nav
+*.vrb
+*.bak
+*.swp
+*~
+
+# 编译产生的 PDF（如果不需要的话）
+# *.pdf
+
+# Build artifacts
+*.run.xml
+*-concordance.tex
+*-concordance.pdf

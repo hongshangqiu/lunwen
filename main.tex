@@ -1,42 +1,36 @@
-%% Bachelor Thesis Template of Wuhan Uniersity
+%% Bachelor Thesis Template of Wuhan University
 %%
-%% Created by Fing
+%% Created by WHUTUG
 
-\documentclass[]{WHUBachelor}
-
-
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\documentclass[type=bachelor,oneside]{WHUBachelor}
+\whusetup
+  {
+    info               =
+      {
+        title          = {基于大模型的软件运维方法},
+        student-number = {2022302111044},
+        school         = {计算机学院},
+        author         = {崔晋闻},
+        subject        = {计算机科学与技术},
+        major          = {软件工程},
+        advisor-name   = {应时},
+        direction      = {软件工程},
+        keywords       = {大模型, 软件运维, AIOps, 智能运维},
+      },
+    element            =
+      {
+        abstract       = {pages/abstract},
+        abstract*      = {pages/enabstract},
+        bibliography   = {ref/refs},
+        thanks         = {pages/thanks},
+        appendix       = {pages/appendix}
+      }
+  }
 
 \begin{document}
-%%----------- 封面部分 ----------- %%
-  \stunum{2022302111044}
-  \ctitle{基于大模型的软件运维方法}
-  \cschool{计算机学院}
-  \cmajor{软件工程}
-  \cauthor{崔晋闻}
-  \cadvisor{应时\quad 教授}
-  \cdate{二〇二六年三月}
-  \maketitlepage            % 封面
-  \makestatement            % 申明
-
-%%----------- 前言部分 ----------- %%
-  \include{pages/abstract}  % 摘要
-  \contents                 % 目录
-
 %%----------- 主体部分 ----------- %%
-  \include{pages/chapter1}
-  \include{pages/chapter2}
-  \include{pages/chapter3}
-  \include{pages/chapter4}
-
-%%----------- 结尾部分 ----------- %%
-  \clearpage
-  \phantomsection
-  \addcontentsline{toc}{chapter}{参考文献}
-  \bibliography{ref/refs}   % 参考文献
-
-  \include{pages/thanks}    % 致谢
-  \include{pages/appendix}  % 附录
-
+\include{pages/chapter1}
+\include{pages/chapter2}
+\include{pages/chapter3}
+\include{pages/chapter4}
 \end{document}
