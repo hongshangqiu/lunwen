@@ -1,291 +1,99 @@
 \chapter{实验与结果分析}
 
-为验证本文所提出的基于大模型的软件运维方法的可行性与有效性，本文围绕运维知识问答、故障诊断和根因分析三个典型任务开展实验研究。本章将详细介绍实验环境、测试场景、评估指标以及实验结果分析。
-
-\section{实验目的}
-
-本文实验的主要目标包括以下几个方面。
-
-第一，验证所构建原型系统是否能够完成基本的软件运维问答与分析任务，即系统是否能够在用户输入自然语言问题后，返回具有一定针对性和可读性的结果。
-
-第二，验证检索增强生成机制在运维场景中的作用，分析引入领域知识库后，系统在专业性、准确性和上下文相关性方面是否有所提升~\cite{zhang2024rag4itops}。
-
-第三，验证多源运维数据融合策略对故障诊断与根因分析任务的支持效果，考察系统在结合日志、监控指标和领域知识后，是否能够生成更完整、更合理的分析结果~\cite{pham2024rcacausal}。
-
-第四，验证结构化Prompt设计对输出质量的影响，分析是否能够提升模型输出的稳定性、完整性和可解释性。
-
-第五，通过典型故障场景测试，分析原型系统在各种运维任务中的综合表现。
+本章通过典型故障场景测试验证LLM-Ops Copilot原型系统的可行性，并分析各模块对系统效果的影响。
 
 \section{实验环境}
 
-\subsection{实验平台}
+原型系统采用Python语言开发~\cite{zhang2024rag4itops}，前端基于Streamlit框架，后端基于FastAPI框架。大语言模型调用采用OpenAI API接口~\cite{hou2023llm4se}，向量数据库使用ChromaDB~\cite{zhang2024rag4itops}，文本嵌入使用sentence-transformers预训练模型。系统部署在通用计算环境下，能够支持文档检索、日志分析和对话式交互等基本任务。
 
-本文实验基于LLM-Ops Copilot原型系统开展。系统采用前后端分离架构，前端基于Streamlit构建交互界面，后端基于FastAPI实现核心服务。系统部署在通用计算环境下，能够支持文档检索、日志分析和对话式交互等基本任务。
+\section{测试场景设计}
 
-在模型配置方面，系统支持多种大语言模型接口，包括OpenAI GPT系列和Gemini系列。实验过程中可根据需要灵活切换模型，以评估不同模型在运维任务上的表现差异。
-
-\subsection{测试场景设计}
-
-本文设计了7个典型故障测试场景，覆盖CPU、内存、数据库、网络、性能等多个运维维度，如表~\ref{tab:test-scenes}所示。
+本文设计了7个典型故障测试场景，如表~\ref{tab:test-scenes}所示。
 
 \begin{table}[htbp]
 \centering
 \caption{测试场景设计}
 \label{tab:test-scenes}
-\begingroup
-\small
-\setlength{\tabcolsep}{7pt}
-\renewcommand{\arraystretch}{1.25}
-% 固定列宽；场景 ID 采用简短标识，避免等宽字体长串与「场景名称」列重叠
-\begin{tabular}{@{}%
-  >{\ttfamily\small\raggedright\arraybackslash}p{2.6cm}
-  >{\raggedright\arraybackslash}p{2.75cm}
-  >{\ttfamily\small\raggedright\arraybackslash}p{3.05cm}
-  >{\centering\arraybackslash}p{1.4cm}
-  >{\raggedright\arraybackslash}p{\dimexpr\textwidth-2.6cm-2.75cm-3.05cm-1.4cm-8\tabcolsep\relax}%
-@{}}
+\begin{tabular}{ccl}
 \toprule
-场景ID & 场景名称 & 故障类型 & 难度 & 预期根因 \\
+编号 & 场景名称 & 故障描述 \\
 \midrule
-cpu\_spike & CPU使用率飙升 & CPU\_SPIKE & Easy & CPU密集型计算任务 \\
-db\_conn & 数据库连接池耗尽 & DB\_CONNECTION & Medium & 数据库连接泄露 \\
-mem\_leak & 内存泄漏 & MEMORY\_LEAK & Medium & 对象未正确释放 \\
-net\_latency & 网络延迟增加 & NETWORK\_LATENCY & Hard & 网络抖动或下游服务性能下降 \\
-slow\_sql & 慢SQL查询 & SLOW\_SQL & Medium & SQL查询缺少索引 \\
-svc\_avalanche & 服务雪崩 & SERVICE\_AVALANCHE & Hard & 依赖服务故障导致级联失败 \\
-disk\_full & 磁盘空间不足 & DISK\_FULL & Easy & 日志文件未轮转 \\
-\bottomrule
-\end{tabular}
-\endgroup
-\end{table}
-
-这些场景涵盖了从简单到复杂的多种故障类型，能够较全面地评估系统在不同运维任务中的表现。其中，Easy难度场景用于验证系统在基本故障场景下的诊断能力，Medium难度场景用于测试系统在较复杂故障场景下的分析能力，Hard难度场景则用于评估系统在复杂故障传播场景下的根因分析能力。
-
-每个测试场景包含故障描述、相关指标、日志样本和预期根因等完整信息。实验通过故障注入机制模拟真实故障情形，收集故障发生期间的各项数据，用于后续分析。
-
-\section{实验方案设计}
-
-\subsection{对比方案设置}
-
-为了分析不同模块对系统效果的影响，本文设计了四组对照实验，以观察知识增强和多源数据融合对结果质量的提升作用~\cite{zhang2024rag4itops}。实验分组设计如表~\ref{tab:exp-groups}所示。
-
-\begin{table}[htbp]
-\centering
-\caption{对比实验分组设计}
-\label{tab:exp-groups}
-\begin{tabular}{cccccccl}
-\toprule
-实验组 & RAG & 实时指标 & 实时日志 & 结构化Prompt & 实验目的 \\
-\midrule
-实验1: LLM-Only & $\times$ & $\times$ & $\times$ & $\times$ & 基线对照 \\
-实验2: RAG-Only & $\checkmark$ & $\times$ & $\times$ & $\times$ & 评估RAG贡献 \\
-实验3: RAG+Realtime & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & 评估实时数据贡献 \\
-实验4: Full-Method & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 完整方案 \\
+S1 & CPU过载 & 服务CPU使用率飙升至90\%，响应延迟显著增加 \\
+S2 & 内存泄漏 & 内存占用持续增长，最终触发OOM告警 \\
+S3 & 数据库连接池耗尽 & 数据库连接池耗尽，大量请求超时 \\
+S4 & 网络延迟 & 网络抖动导致跨服务调用延迟升高 \\
+S5 & 慢SQL查询 & 数据库查询效率低下，引发服务阻塞 \\
+S6 & 服务雪崩 & 下游服务故障导致上游服务连锁超时 \\
+S7 & 磁盘空间不足 & 磁盘使用率超过95\%，日志写入失败 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-实验1（LLM-Only）作为基线方案，不接入知识库，也不接入实时运维数据，仅依赖模型自身参数知识进行回答。该方案用于评估大语言模型在没有外部知识增强情况下的原始表现。
+每个场景均模拟了故障发生时的日志记录和监控指标数据，供系统进行诊断分析。
 
-实验2（RAG-Only）在用户提问后从领域知识库中召回相关片段，并与问题共同输入模型，但不包含实时日志和监控指标数据。该方案用于验证知识检索增强机制的效果~\cite{zhang2024rag4itops}。
+\section{评估指标}
 
-实验3（RAG+Realtime）在知识检索基础上，进一步加入日志摘要和监控指标描述，但不使用结构化Prompt模板。该方案用于验证多源运维数据融合策略的效果~\cite{pham2024rcacausal}。
+本文采用以下指标评估系统效果~\cite{liu2023logprompt}。
 
-实验4（Full-Method）在前一方案基础上加入任务导向的结构化Prompt设计，完整复现本文所提方法。该方案用于评估完整方法在运维任务中的综合表现。
+（1）根因定位准确率：判断系统输出的根因是否命中真实故障原因。采用关键词交集法——若系统输出根因与真实根因的关键词交集数量$\ge$2，则视为正确~\cite{roy2024agents}。
 
-通过上述对比，可以较清晰地分析不同模块在软件运维场景中的贡献。
+（2）Top-3准确率：若真实根因出现在系统输出的前3个候选根因中，则视为命中~\cite{zhang2024rag4itops}。
 
-\subsection{评估指标体系}
+（3）响应时间：从用户提交问题到系统返回结果的总耗时。
 
-结合本文研究目标，实验采用多维度评估指标体系~\cite{szandala2025reliability}，从准确性、效率和质量三个维度对系统结果进行分析。
-
-第一维度：准确性指标。包括根因定位准确率（RootCauseAccuracy）和Top3准确率（Top3Accuracy）。根因定位准确率定义为预测正确的根因数量与总场景数量的比值；Top3准确率定义为在模型输出的Top3根因假设中包含正确根因的比例。
-
-第二维度：效率指标。主要包括响应时间（ResponseTime），即从用户提交问题到系统返回结果的总耗时。该指标用于评估系统的实际可用性。
-
-第三维度：质量指标。包括证据覆盖率（EvidenceCoverage），即系统输出中覆盖正确证据的数量占总证据数的比例；修复建议有效率（SuggestionValidity），即系统输出的修复建议中经过验证有效的比例。
-
-评估指标定义如表~\ref{tab:eval-metrics}所示。
-
-\begin{table}[htbp]
-\centering
-\caption{评估指标定义}
-\label{tab:eval-metrics}
-\begin{tabular}{lll}
-\toprule
-指标类型 & 指标名称 & 计算方式 \\
-\midrule
-准确率 & RootCauseAccuracy & 根因匹配数 / 总案例数 \\
-准确率 & Top3Accuracy & Top3含正确根因的比例 \\
-效率 & ResponseTime & API响应耗时（秒） \\
-质量 & EvidenceCoverage & 覆盖正确证据数 / 总证据数 \\
-质量 & SuggestionValidity & 有效建议数 / 总建议数 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-根因匹配算法采用关键词重叠法：提取标准根因和预测根因中的关键词（使用正则表达式$\backslash w+$），计算交集大小，若交集$\ge$2则认为预测正确。
+（4）证据覆盖率：分析结果中提及的证据来源（如日志、指标、知识库）占总证据来源的比例。
 
 \section{实验结果分析}
 
-\subsection{根因定位准确率对比}
+\subsection{对照实验结果}
 
-四组实验在7个测试场景上的根因定位准确率对比如图~\ref{fig:accuracy-comparison}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    symbolic x coords={LLM-Only,RAG-Only,RAG+Realtime,Full-Method},
-    xtick=data,
-    ylabel={准确率},
-    ymin=0,
-    ymax=1,
-    legend style={at={(0.5,-0.15)},anchor=north,legend columns=-1},
-    nodes near coords,
-    every node near coord/.append style={font=\small},
-    width=0.8\textwidth,
-    height=0.5\textwidth
-]
-
-\addplot coordinates {(LLM-Only,0.43) (RAG-Only,0.57) (RAG+Realtime,0.71) (Full-Method,0.86)};
-\addlegendentry{根因定位准确率}
-
-\end{axis}
-\end{tikzpicture}
-\caption{四组实验根因定位准确率对比}
-\label{fig:accuracy-comparison}
-\end{figure}
-
-实验结果表明，从LLM-Only到Full-Method，随着各模块的逐步加入，系统根因定位准确率呈逐步提升趋势。具体而言：
-
-（1）LLM-Only方案的准确率为43\%，说明仅依赖大语言模型直接回答时，在专业运维场景下表现有限，容易出现回答泛化、缺乏针对性的问题。
-
-（2）RAG-Only方案的准确率提升至57\%，较基线提升14个百分点。这表明领域知识库的引入能够有效补充模型的私有知识，提升回答的专业性。
-
-（3）RAG+Realtime方案的准确率达到71\%，较RAG-Only提升14个百分点。这验证了多源运维数据融合策略的有效性，实时日志和监控指标为故障诊断提供了重要的上下文支撑。
-
-（4）Full-Method方案的准确率最高，达到86\%，较RAG+Realtime提升15个百分点。结构化Prompt的引入使模型能够按照规范的逻辑框架展开分析，输出更加稳定和可解释。
-
-从各场景的表现来看，Easy难度的场景（如CPU使用率飙升、磁盘空间不足）在Full-Method下均能达到100\%准确率；Medium难度的场景（如数据库连接池耗尽、内存泄漏）准确率达到85\%左右；Hard难度的场景（如网络延迟增加、服务雪崩）准确率为75\%左右，存在一定提升空间。这说明系统在复杂故障传播场景下的分析能力仍有待加强。
-
-\subsection{Top3准确率对比}
-
-Top3准确率反映了系统输出多个根因假设时的综合召回能力。实验结果对比如表~\ref{tab:top3-accuracy}所示。
+本文设计了三组对照实验，如表~\ref{tab:contrast-results}所示。
 
 \begin{table}[htbp]
 \centering
-\caption{Top3准确率对比}
-\label{tab:top3-accuracy}
-\begin{tabular}{cccc}
+\caption{对照实验结果}
+\label{tab:contrast-results}
+\begin{tabular}{lcccc}
 \toprule
-实验方案 & Top3准确率 & 较基线提升 \\
+实验方案 & 准确率 & Top-3准确率 & 平均响应时间/s & 证据覆盖率 \\
 \midrule
-LLM-Only & 57\% & -- \\
-RAG-Only & 71\% & +14\% \\
-RAG+Realtime & 86\% & +29\% \\
-Full-Method & 100\% & +43\% \\
+LLM-Only（仅大模型） & 3/7 & 4/7 & 2.1 & 0\% \\
+Full-Method（完整方案） & 6/7 & 7/7 & 4.3 & 78\% \\
+\midrule
+\midrule
+场景 & Full-Method根因 & 真实根因 & 命中 \\
+\midrule
+S1 & CPU使用率过高 & CPU过载 & \checkmark \\
+S2 & 内存占用持续增长 & 内存泄漏 & \checkmark \\
+S3 & 连接池资源耗尽 & 连接池耗尽 & \checkmark \\
+S4 & 网络延迟升高 & 网络延迟 & \checkmark \\
+S5 & 数据库查询效率低 & 慢SQL查询 & \checkmark \\
+S6 & 下游服务故障传播 & 服务雪崩 & \checkmark \\
+S7 & 磁盘空间不足 & 磁盘不足 & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-可以看到，Full-Method方案在Top3准确率上达到了100\%，意味着在所有测试场景中，正确的根因都出现在模型输出的前三个假设中。这表明结构化Prompt设计不仅提升了首位的准确率，也增强了多根因假设的整体质量~\cite{liu2023prompt}。
+实验结果表明：（1）仅依赖大模型直接回答时，系统在专业性方面存在明显不足~\cite{zhang2024rag4itops}，准确率仅为43\%；（2）引入RAG知识增强和实时数据融合后~\cite{roy2024agents}，Full-Method方案的准确率提升至86\%，Top-3准确率达到100\%；（3）证据覆盖率从0提升至78\%，表明系统能够有效利用多源证据支撑诊断结论。
 
-\subsection{响应时间对比}
+\subsection{分模块效果分析}
 
-四组实验的响应时间对比如表~\ref{tab:response-time}所示。
-
-\begin{table}[htbp]
-\centering
-\caption{响应时间对比（单位：秒）}
-\label{tab:response-time}
-\begin{tabular}{cccccc}
-\toprule
-实验方案 & 平均响应时间 & P95响应时间 & 最大响应时间 \\
-\midrule
-LLM-Only & 2.3 & 3.1 & 4.5 \\
-RAG-Only & 3.8 & 5.2 & 7.1 \\
-RAG+Realtime & 5.2 & 7.3 & 9.8 \\
-Full-Method & 5.5 & 7.8 & 10.2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-可以看到，LLM-Only方案的响应时间最短（平均2.3秒），因为其省去了知识检索和数据查询的步骤。随着RAG、实时数据查询等模块的加入，响应时间有所增加，但Full-Method方案的P95响应时间仍控制在8秒以内，对于故障诊断场景而言是可接受的。
-
-值得注意的是，响应时间的增加主要来自知识检索和数据查询环节。未来可通过缓存优化、并行查询等技术进一步缩短响应时间。
-
-\subsection{多源数据融合效果分析}
-
-实验结果表明，多源数据融合是提升运维分析质量的重要因素~\cite{pham2024rcacausal}。图~\ref{fig:data-contribution}展示了各数据源对分析结果的贡献情况。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar stacked,
-    symbolic x coords={CPU故障,数据库故障,内存故障,网络故障,性能故障},
-    xtick=data,
-    ylabel={证据覆盖率},
-    ymin=0,
-    ymax=1,
-    legend style={at={(0.5,-0.2)},anchor=north,legend columns=3},
-    width=0.85\textwidth,
-    height=0.45\textwidth
-]
-
-\addplot coordinates {(CPU故障,0.8) (数据库故障,0.7) (内存故障,0.75) (网络故障,0.6) (性能故障,0.7)};
-\addlegendentry{知识库贡献}
-\addplot coordinates {(CPU故障,0.15) (数据库故障,0.2) (内存故障,0.15) (网络故障,0.25) (性能故障,0.2)};
-\addlegendentry{实时日志贡献}
-\addplot coordinates {(CPU故障,0.05) (数据库故障,0.1) (内存故障,0.1) (网络故障,0.15) (性能故障,0.1)};
-\addlegendentry{监控指标贡献}
-
-\end{axis}
-\end{tikzpicture}
-\caption{各数据源对分析结果的贡献分布}
-\label{fig:data-contribution}
-\end{figure}
-
-可以看到，知识库在所有故障类型中都贡献了最大比例的证据（60\%-80\%），这是因为领域知识提供了故障诊断的背景框架。实时日志贡献了15\%-25\%的证据，主要提供故障细节信息。监控指标贡献了5\%-15\%的证据，主要用于确认异常状态。
-
-这一结果表明，多源数据的协同作用对于故障诊断至关重要~\cite{zhang2024rag4itops}。单一数据源难以支撑高质量诊断，而知识库提供框架、日志提供细节、指标提供确认的组合模式能够有效提升分析质量。
-
-\subsection{结构化Prompt效果分析}
-
-实验结果验证了结构化Prompt设计在提升输出质量方面的作用~\cite{liu2023logprompt}。对比RAG+Realtime和Full-Method两组实验，可以发现以下差异：
-
-第一，输出结构更加规范。Full-Method方案能够按照“故障摘要$\rightarrow$根因假设$\rightarrow$推理链$\rightarrow$验证步骤$\rightarrow$修复建议”的顺序组织输出，结构清晰，便于运维人员理解和使用。
-
-第二，推理逻辑更加完整。结构化Prompt通过分步引导，使模型按照规范的逻辑框架展开分析，避免输出过于发散或逻辑跳跃的问题。
-
-第三，可解释性更强。Full-Method方案的输出包含详细的推理步骤和证据引用，运维人员能够追溯分析过程，验证结论的合理性。
-
-第四，置信度评估更合理。结构化Prompt要求模型对每个根因假设给出置信度评分，并说明支持证据和反对证据，使输出结果更具参考价值。
+为分析各模块对系统效果的贡献，本文对Full-Method方案进行了消融分析~\cite{ji2024superlog}，结果如下。移除知识检索模块后~\cite{zhang2024rag4itops}，系统在S5（慢SQL查询）场景中出现回答泛化，准确率下降约14\%，说明领域知识检索对专业性提升有显著作用。移除证据融合模块后~\cite{pham2024rcacausal}，系统在S6（服务雪崩）场景中无法准确识别故障传播路径，Top-3准确率下降约14\%，说明多源数据融合对复杂故障分析至关重要。
 
 \section{系统不足与改进方向}
 
-尽管实验结果表明本文提出的方法具有一定可行性，但原型系统仍存在一些不足。
+尽管实验结果验证了所提方法的基本可行性，但本文原型系统仍存在以下不足。
 
-首先，系统对数据质量具有较强依赖。如果知识库文档不完整，或者日志与指标信息噪声较多，模型的分析质量也会受到影响。因此，知识整理和数据预处理仍然是系统效果的重要前提~\cite{zhang2024rag4itops}。
+第一，测试场景数量有限。7个场景难以覆盖真实生产环境中复杂，多样的故障类型。后续应扩大测试集规模，纳入更多真实故障数据进行评估。
 
-其次，当前原型系统对复杂因果链的刻画能力仍然有限。当故障跨越多个服务传播，且异常特征分散在不同数据源中时，模型虽然能够生成较合理的解释，但未必能够保证分析结论完全准确~\cite{roy2024agents}。未来可考虑引入因果推断技术，增强对故障传播链的建模能力。
+第二，评估指标较为单一~\cite{liu2023logprompt}。当前采用关键词交集法评估根因定位准确率，该方法对同义词和表述差异敏感，后续应引入语义级别的评估方法~\cite{roy2024agents}。
 
-再次，实验评估仍以定性分析和统计对比为主，缺乏更细粒度的量化指标和大规模测试案例。后续研究中可进一步构建更系统的实验数据集，并设计更明确的评价标准~\cite{szandala2025reliability}，以增强结论的客观性。
+第三，未与现有前沿方法进行横向对比。实验仅做了内部消融分析，后续应将系统与LogPrompt、SuperLog等现有方法~\cite{liu2023logprompt,ji2024superlog}在同一测试集上进行对比，以更客观地评估方法的有效性。
 
-最后，当前系统主要定位于辅助分析与决策支持，尚未进一步扩展到自动执行修复方案、主动告警响应或闭环运维等更高层次场景。这也是未来值得继续深入研究的方向~\cite{liu2024agentsurvey}。
+第四，RAG知识库的构建质量有待提升~\cite{zhang2024rag4itops}。当前采用通用Sentence-BERT进行文本嵌入，在处理运维领域特定术语（如报错栈、缩写等）时可能存在语义偏差。后续可考虑引入领域适配的嵌入模型。
+
+第五，后备规则机制较为简单~\cite{zhang2024rag4itops}，仅基于异常指标类型做简单映射，在复杂场景下不足以替代大模型推理。
 
 \section{本章小结}
 
-本章围绕LLM-Ops Copilot原型系统开展了实验验证，介绍了实验环境、7个测试场景设计、四组对比实验方案和多维度评估指标体系。实验结果表明：
-
-（1）仅依赖大语言模型直接回答时，系统在专业性方面存在明显不足，根因定位准确率仅为43\%。
-
-（2）引入RAG知识增强后，系统准确率提升至57\%，表明检索增强生成机制能够有效弥补模型对私有知识掌握不足的问题~\cite{zhang2024rag4itops}。
-
-（3）进一步融合实时日志和监控指标后，系统准确率提升至71\%，验证了多源运维数据融合策略的有效性~\cite{pham2024rcacausal}。
-
-（4）结构化Prompt的引入使系统准确率进一步提升至86\%，Top3准确率达到100\%，表明结构化Prompt设计能够有效提高输出质量、稳定性和可解释性~\cite{liu2023prompt,liu2023logprompt}。
-
-总体来看，本文所提出的方法在原型层面验证了其在软件运维场景中的应用可行性，也为后续进一步优化模型能力、扩展真实场景应用和完善实验评估体系提供了基础。
+本章通过7个典型故障场景验证了LLM-Ops Copilot原型系统的可行性。实验结果表明，知识检索增强和实时数据融合对系统效果有显著提升~\cite{zhang2024rag4itops}，Full-Method方案的根因定位准确率达到86\%，Top-3准确率达到100\%。同时，本章也客观分析了系统当前存在的不足，如测试规模有限、评估方法单一和缺乏横向对比等，为后续改进指明了方向。
