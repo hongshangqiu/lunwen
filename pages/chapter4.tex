@@ -36,24 +36,24 @@
 \small
 \setlength{\tabcolsep}{7pt}
 \renewcommand{\arraystretch}{1.25}
-% 固定列宽 + 足够列间距，避免 tabularx 与多列 p{} 混用时挤在一起、文字重叠
+% 固定列宽；场景 ID 采用简短标识，避免等宽字体长串与「场景名称」列重叠
 \begin{tabular}{@{}%
-  >{\ttfamily\small\raggedright\arraybackslash}p{3.05cm}
-  >{\raggedright\arraybackslash}p{2.55cm}
+  >{\ttfamily\small\raggedright\arraybackslash}p{2.6cm}
+  >{\raggedright\arraybackslash}p{2.75cm}
   >{\ttfamily\small\raggedright\arraybackslash}p{3.05cm}
   >{\centering\arraybackslash}p{1.4cm}
-  >{\raggedright\arraybackslash}p{\dimexpr\textwidth-3.05cm-2.55cm-3.05cm-1.4cm-8\tabcolsep\relax}%
+  >{\raggedright\arraybackslash}p{\dimexpr\textwidth-2.6cm-2.75cm-3.05cm-1.4cm-8\tabcolsep\relax}%
 @{}}
 \toprule
 场景ID & 场景名称 & 故障类型 & 难度 & 预期根因 \\
 \midrule
-scene\_cpu\_spike & CPU使用率飙升 & CPU\_SPIKE & Easy & CPU密集型计算任务 \\
-scene\_db\_conn & 数据库连接池耗尽 & DB\_CONNECTION & Medium & 数据库连接泄露 \\
-scene\_memory\_leak & 内存泄漏 & MEMORY\_LEAK & Medium & 对象未正确释放 \\
-scene\_network\_latency & 网络延迟增加 & NETWORK\_LATENCY & Hard & 网络抖动或下游服务性能下降 \\
-scene\_slow\_sql & 慢SQL查询 & SLOW\_SQL & Medium & SQL查询缺少索引 \\
-scene\_service\_avalanche & 服务雪崩 & SERVICE\_AVALANCHE & Hard & 依赖服务故障导致级联失败 \\
-scene\_disk\_full & 磁盘空间不足 & DISK\_FULL & Easy & 日志文件未轮转 \\
+cpu\_spike & CPU使用率飙升 & CPU\_SPIKE & Easy & CPU密集型计算任务 \\
+db\_conn & 数据库连接池耗尽 & DB\_CONNECTION & Medium & 数据库连接泄露 \\
+mem\_leak & 内存泄漏 & MEMORY\_LEAK & Medium & 对象未正确释放 \\
+net\_latency & 网络延迟增加 & NETWORK\_LATENCY & Hard & 网络抖动或下游服务性能下降 \\
+slow\_sql & 慢SQL查询 & SLOW\_SQL & Medium & SQL查询缺少索引 \\
+svc\_avalanche & 服务雪崩 & SERVICE\_AVALANCHE & Hard & 依赖服务故障导致级联失败 \\
+disk\_full & 磁盘空间不足 & DISK\_FULL & Easy & 日志文件未轮转 \\
 \bottomrule
 \end{tabular}
 \endgroup
