@@ -23,41 +23,34 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \begin{tikzpicture}[
     >=stealth,
     node distance=1.2cm,
-    font=\songti\xiaosi,
+    font=\songti\zihao{-5},
     box/.style={draw, rounded corners, minimum width=3cm, minimum height=0.8cm, align=center},
-    arrow/.style={->, thick},
-    layer/.style={fill=#1}
+    arrow/.style={->, thick}
 ]
 
-% 定义颜色
-\def\lcolorI{#2D87BB}
-\def\lcolorII{#5BA55B}
-\def\lcolorIII{#E8A838}
-\def\lcolorIV{#D64545}
-
 % 第四层 - 数据存储层
-\node[box, fill=\lcolorIV!20, draw=\lcolorIV, minimum width=10cm] (layer4) at (0, -5) {数据存储层};
+\node[box, fill=blue!15, draw=blue!60, minimum width=10cm] (layer4) at (0, -5) {数据存储层};
 
-\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (chroma) at (-3.2, -5) {ChromaDB\\向量数据库};
-\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (mysql) at (0, -5) {MySQL\\关系数据库};
-\node[box, fill=white, draw=\lcolorIV, minimum width=2.5cm] (fs) at (3.2, -5) {文件系统\\日志/指标};
+\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (chroma) at (-3.2, -5) {ChromaDB\\向量数据库};
+\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (mysql) at (0, -5) {MySQL\\关系数据库};
+\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (fs) at (3.2, -5) {文件系统\\日志/指标};
 
 % 第三层 - 核心逻辑层
-\node[box, fill=\lcolorIII!20, draw=\lcolorIII, minimum width=10cm] (layer3) at (0, -2.8) {核心逻辑层};
+\node[box, fill=orange!15, draw=orange!60, minimum width=10cm] (layer3) at (0, -2.8) {核心逻辑层};
 
-\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (knowledge) at (-3.2, -2.8) {知识检索\\模块};
-\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (evidence) at (0, -2.8) {证据融合\\模块};
-\node[box, fill=white, draw=\lcolorIII, minimum width=2.5cm] (rca) at (3.2, -2.8) {RCA推理\\引擎};
+\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (knowledge) at (-3.2, -2.8) {知识检索\\模块};
+\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (evidence) at (0, -2.8) {证据融合\\模块};
+\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (rca) at (3.2, -2.8) {RCA推理\\引擎};
 
 % 第二层 - 服务接口层
-\node[box, fill=\lcolorII!20, draw=\lcolorII, minimum width=10cm] (layer2) at (0, -0.6) {服务接口层};
+\node[box, fill=green!15, draw=green!60, minimum width=10cm] (layer2) at (0, -0.6) {服务接口层};
 
-\node[box, fill=white, draw=\lcolorII, minimum width=3cm] (api) at (0, -0.6) {FastAPI RESTful API};
+\node[box, fill=white, draw=green!60, minimum width=3cm] (api) at (0, -0.6) {FastAPI RESTful API};
 
 % 第一层 - 用户交互层
-\node[box, fill=\lcolorI!20, draw=\lcolorI, minimum width=10cm] (layer1) at (0, 1.6) {用户交互层};
+\node[box, fill=red!15, draw=red!60, minimum width=10cm] (layer1) at (0, 1.6) {用户交互层};
 
-\node[box, fill=white, draw=\lcolorI, minimum width=8cm] (ui) at (0, 1.6) {Streamlit Web界面\\故障诊断 / 知识查询 / 监控展示 / 实验评估};
+\node[box, fill=white, draw=red!60, minimum width=8cm] (ui) at (0, 1.6) {Streamlit Web界面\\故障诊断 / 知识查询 / 监控展示 / 实验评估};
 
 % 箭头连接
 \draw[arrow] (ui) -- (api);
@@ -70,17 +63,17 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (evidence) -- (fs);
 
 % 数据源标注
-\node[anchor=south west, font=\xiaoliu] at (-5, -2.8) {外部数据源:};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (-4.5, -3.5) {日志};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (-2.2, -3.5) {监控指标};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\xiaoliu] at (0.1, -3.5) {运维文档};
+\node[anchor=south west, font=\songti\zihao{-5}] at (-5, -2.8) {外部数据源:};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (-4.5, -3.5) {日志};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (-2.2, -3.5) {监控指标};
+\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (0.1, -3.5) {运维文档};
 
 \draw[->, dashed, gray] (-4.5, -3.5) -- (-4, -3.2);
 \draw[->, dashed, gray] (-2.2, -3.5) -- (-0.8, -3.2);
 \draw[->, dashed, gray] (0.1, -3.5) -- (2, -3.2);
 
 % LLM标注
-\node[box, fill=\lcolorIII!30, draw=\lcolorIII, dashed, minimum width=2cm, font=\xiaoliu] at (3.2, -1.8) {LLM API};
+\node[box, fill=orange!25, draw=orange!60, dashed, minimum width=2cm, font=\songti\zihao{-5}] at (3.2, -1.8) {LLM API};
 
 \draw[arrow] (rca) -- (3.2, -1.8);
 
@@ -134,18 +127,18 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \begin{tikzpicture}[
     >=stealth,
     node distance=1cm,
-    font=\songti\xiaosi,
-    proc/.style={draw, rounded corners, fill=#1!15, minimum width=2.8cm, minimum height=1cm, align=center},
-    data/.style={draw, ellipse, fill=#1!20, minimum width=2.5cm, align=center},
+    font=\songti\zihao{-5},
+    proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.8cm, minimum height=1cm, align=center},
+    data/.style={draw, ellipse, fill=green!15, minimum width=2.5cm, align=center},
     arrow/.style={->, thick}
 ]
 
 % 左侧 - 构建阶段
-\node[proc=blue] (doc) at (-5, 2) {原始文档};
-\node[proc=blue] (clean) at (-5, 0.5) {文档预处理};
-\node[proc=blue] (chunk) at (-5, -1) {智能切分};
-\node[proc=blue] (embed) at (-5, -2.5) {向量嵌入};
-\node[proc=blue] (store) at (-5, -4) {存入ChromaDB};
+\node[proc] (doc) at (-5, 2) {原始文档};
+\node[proc] (clean) at (-5, 0.5) {文档预处理};
+\node[proc] (chunk) at (-5, -1) {智能切分};
+\node[proc] (embed) at (-5, -2.5) {向量嵌入};
+\node[proc] (store) at (-5, -4) {存入ChromaDB};
 
 \draw[arrow] (doc) -- (clean);
 \draw[arrow] (clean) -- (chunk);
@@ -153,17 +146,17 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (embed) -- (store);
 
 % 左侧说明
-\node[anchor=north, font=\xiaoliu, color=blue] at (-5, 2.5) {知识库构建阶段};
+\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (-5, 2.5) {知识库构建阶段};
 
 % 中间 - 向量数据库
-\node[data=green] (vectorDB) at (0, -1) {ChromaDB\\向量数据库};
+\node[data] (vectorDB) at (0, -1) {ChromaDB\\向量数据库};
 
 % 右侧 - 检索阶段
-\node[proc=orange] (query) at (5, 2) {用户查询};
-\node[proc=orange] (qembed) at (5, 0.5) {查询向量化};
-\node[proc=orange] (retrieve) at (5, -1) {向量检索};
-\node[proc=orange] (rerank) at (5, -2.5) {相关性重排序};
-\node[data=purple] (result) at (5, -4) {检索结果};
+\node[proc] (query) at (5, 2) {用户查询};
+\node[proc] (qembed) at (5, 0.5) {查询向量化};
+\node[proc] (retrieve) at (5, -1) {向量检索};
+\node[proc] (rerank) at (5, -2.5) {相关性重排序};
+\node[data, fill=purple!15] (result) at (5, -4) {检索结果};
 
 \draw[arrow] (query) -- (qembed);
 \draw[arrow] (qembed) -- (retrieve);
@@ -171,25 +164,25 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (rerank) -- (result);
 
 % 右侧说明
-\node[anchor=north, font=\xiaoliu, color=orange] at (5, 2.5) {知识检索阶段};
+\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (5, 2.5) {知识检索阶段};
 
 % 连接箭头
 \draw[arrow, dashed] (-2.5, -1) -- (-1.5, -1);
 \draw[arrow, dashed] (1.5, -1) -- (2.5, -1);
 
 % 切分详细说明
-\node[anchor=east, font=\xiaoliu, align=left] at (-6.5, -1) {
+\node[anchor=east, font=\songti\zihao{-5}, align=left] at (-6.5, -1) {
     切分策略:\\
-    \xiaoliu • 层级递归切分\\
-    \xiaoliu • SOP: 按步骤切分\\
-    \xiaoliu • 案例: 按阶段切分\\
-    \xiaoliu • 保留元信息
+    • 层级递归切分\\
+    • SOP: 按步骤切分\\
+    • 案例: 按阶段切分\\
+    • 保留元信息
 };
 
 % 元数据过滤标注
-\node[proc=green] (filter) at (0, -3) {元数据过滤};
+\node[proc, fill=green!15] (filter) at (0, -3) {元数据过滤};
 \draw[arrow] (filter) -- (vectorDB);
-\node[anchor=north, font=\xiaoliu, color=green] at (0, -2.2) {服务名/故障类型};
+\node[anchor=north, font=\songti\zihao{-5}, color=green!60!black] at (0, -2.2) {服务名/故障类型};
 
 \end{tikzpicture}
 \caption{知识库构建与检索流程}
@@ -265,9 +258,9 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \begin{tikzpicture}[
     >=stealth,
     node distance=1cm,
-    font=\songti\xiaosi,
+    font=\songti\zihao{-5},
     input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm},
-    proc/.style={draw, rounded corners, fill=#1!15, minimum width=3cm, minimum height=0.9cm},
+    proc/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.9cm},
     output/.style={draw, rounded corners, fill=green!15, minimum width=3.5cm, minimum height=1.2cm},
     arrow/.style={->, thick}
 ]
@@ -278,25 +271,25 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \node[input] (knowledge) at (4, 2) {检索知识};
 
 % 日志处理流水线
-\node[proc=blue] (filter) at (-4, 0) {日志过滤};
-\node[proc=blue] (classify) at (-4, -1.5) {日志分类};
-\node[proc=blue] (summary) at (-4, -3) {日志摘要};
+\node[proc] (filter) at (-4, 0) {日志过滤};
+\node[proc] (classify) at (-4, -1.5) {日志分类};
+\node[proc] (summary) at (-4, -3) {日志摘要};
 
 \draw[arrow] (logs) -- (filter);
 \draw[arrow] (filter) -- (classify);
 \draw[arrow] (classify) -- (summary);
 
 % 指标处理
-\node[proc=orange] (detect) at (0, 0) {异常识别};
-\node[proc=orange] (convert) at (0, -1.5) {文本转换};
-\node[proc=orange] (analyze) at (0, -3) {关联分析};
+\node[proc, fill=orange!15] (detect) at (0, 0) {异常识别};
+\node[proc, fill=orange!15] (convert) at (0, -1.5) {文本转换};
+\node[proc, fill=orange!15] (analyze) at (0, -3) {关联分析};
 
 \draw[arrow] (metrics) -- (detect);
 \draw[arrow] (detect) -- (convert);
 \draw[arrow] (convert) -- (analyze);
 
 % 严重程度评估
-\node[proc=purple] (severity) at (4, -1.5) {严重程度\\评估};
+\node[proc, fill=purple!15] (severity) at (4, -1.5) {严重程度\\评估};
 
 % 证据融合
 \node[output] (context) at (0, -5.5) {AnalysisContext\\结构化上下文};
@@ -308,12 +301,12 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (severity) -- (context);
 
 % 详细说明
-\node[anchor=north, font=\xiaoliu, color=blue] at (-4, 2.5) {日志处理};
-\node[anchor=north, font=\xiaoliu, color=orange] at (0, 2.5) {指标处理};
-\node[anchor=north, font=\xiaoliu, color=purple] at (4, 2.5) {评估};
+\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (-4, 2.5) {日志处理};
+\node[anchor=north, font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.5) {指标处理};
+\node[anchor=north, font=\songti\zihao{-5}, color=purple!70!black] at (4, 2.5) {评估};
 
 % 右侧标注
-\node[anchor=west, font=\xiaoliu, align=left] at (6, -3) {
+\node[anchor=west, font=\songti\zihao{-5}, align=left] at (6, -3) {
     评估因素:\\
     • 异常指标数量\\
     • 错误日志密度\\
@@ -443,9 +436,9 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 \begin{tikzpicture}[
     >=stealth,
     node distance=1.2cm,
-    font=\songti\xiaosi,
+    font=\songti\zihao{-5},
     input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm},
-    proc/.style={draw, rounded corners, fill=#1!15, minimum width=3.2cm, minimum height=1cm},
+    proc/.style={draw, rounded corners, fill=blue!15, minimum width=3.2cm, minimum height=1cm},
     output/.style={draw, rounded corners, fill=green!15, minimum width=3cm, minimum height=1cm},
     decision/.style={draw, diamond, aspect=2, fill=yellow!15, minimum width=2cm},
     arrow/.style={->, thick}
@@ -455,19 +448,19 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 \node[input] (context) at (0, 3) {AnalysisContext};
 
 % Prompt构建
-\node[proc=blue] (prompt) at (0, 1.5) {构建结构化Prompt};
+\node[proc] (prompt) at (0, 1.5) {构建结构化Prompt};
 
 % LLM调用
-\node[proc=purple] (llm) at (0, 0) {调用LLM API};
+\node[proc, fill=purple!15] (llm) at (0, 0) {调用LLM API};
 
 % 解析决策
 \node[decision] (parse) at (0, -1.8) {解析成功?};
 
 % 成功分支
-\node[output=green] (success) at (0, -3.5) {结构化诊断结果};
+\node[output] (success) at (0, -3.5) {结构化诊断结果};
 
 % 失败分支
-\node[proc=orange] (fallback) at (4, -1.8) {后备规则分析};
+\node[proc, fill=orange!15] (fallback) at (4, -1.8) {后备规则分析};
 
 % 最终结果
 \node[output] (result) at (0, -5.5) {诊断结果输出};
@@ -482,11 +475,11 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 \draw[arrow] (fallback) -- (result);
 
 % 标注
-\node[anchor=south, font=\xiaoliu, color=green] at (0, -3) {JSON格式解析};
-\node[anchor=south, font=\xiaoliu, color=orange] at (4, -1.3) {规则映射};
+\node[anchor=south, font=\songti\zihao{-5}, color=green!60!black] at (0, -3) {JSON格式解析};
+\node[anchor=south, font=\songti\zihao{-5}, color=orange!70!black] at (4, -1.3) {规则映射};
 
 % Prompt组件标注
-\node[anchor=east, font=\xiaoliu, align=right] at (-4, 1.5) {
+\node[anchor=east, font=\songti\zihao{-5}, align=right] at (-4, 1.5) {
     Prompt包含:\\
     • 角色设定\\
     • 上下文规范\\
@@ -563,29 +556,29 @@ RCA推理的伪代码实现如算法~\ref{algo:rca-engine}所示。
 \begin{tikzpicture}[
     >=stealth,
     node distance=0.8cm,
-    font=\songti\xiaosi,
-    step/.style={draw, rounded corners, fill=#1!15, minimum width=3cm, minimum height=0.8cm, align=center},
+    font=\songti\zihao{-5},
+    step/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.8cm, align=center},
     arrow/.style={->, thick, >=stealth}
 ]
 
 % Pipeline步骤
-\node[step=blue] (input) at (0, 0) {1. 用户输入\\故障描述};
+\node[step] (input) at (0, 0) {1. 用户输入\\故障描述};
 
-\node[step=green] (retrieve) at (0, -1.5) {2. 知识检索\\获取SOP和案例};
+\node[step, fill=green!15] (retrieve) at (0, -1.5) {2. 知识检索\\获取SOP和案例};
 
-\node[step=orange] (data) at (0, -3) {3. 获取实时数据\\日志 + 监控指标};
+\node[step, fill=orange!15] (data) at (0, -3) {3. 获取实时数据\\日志 + 监控指标};
 
-\node[step=purple] (fusion) at (0, -4.5) {4. 证据融合\\构建分析上下文};
+\node[step, fill=purple!15] (fusion) at (0, -4.5) {4. 证据融合\\构建分析上下文};
 
-\node[step=red] (rca) at (0, -6) {5. RCA推理\\根因分析};
+\node[step, fill=red!15] (rca) at (0, -6) {5. RCA推理\\根因分析};
 
-\node[step=blue] (output) at (0, -7.5) {6. 输出诊断结果\\JSON格式};
+\node[step, fill=green!15] (output) at (0, -7.5) {6. 输出诊断结果\\JSON格式};
 
 % 水平标注
-\node[anchor=east, font=\xiaoliu, color=green] at (-4.5, -1.5) {ChromaDB检索};
-\node[anchor=east, font=\xiaoliu, color=orange] at (-4.5, -3) {日志/指标服务};
-\node[anchor=east, font=\xiaoliu, color=purple] at (-4.5, -4.5) {EvidenceBuilder};
-\node[anchor=east, font=\xiaoliu, color=red] at (-4.5, -6) {LLM + 结构化Prompt};
+\node[anchor=east, font=\songti\zihao{-5}, color=green!60!black] at (-4.5, -1.5) {ChromaDB检索};
+\node[anchor=east, font=\songti\zihao{-5}, color=orange!70!black] at (-4.5, -3) {日志/指标服务};
+\node[anchor=east, font=\songti\zihao{-5}, color=purple!70!black] at (-4.5, -4.5) {EvidenceBuilder};
+\node[anchor=east, font=\songti\zihao{-5}, color=red!60!black] at (-4.5, -6) {LLM + 结构化Prompt};
 
 % 连接
 \draw[arrow] (input) -- (retrieve);
@@ -595,7 +588,7 @@ RCA推理的伪代码实现如算法~\ref{algo:rca-engine}所示。
 \draw[arrow] (rca) -- (output);
 
 % 返回标注
-\node[anchor=west, font=\xiaoliu, color=gray] at (3.5, -4.5) {
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -4.5) {
     返回内容:\\
     • 故障摘要\\
     • 根因假设\\
