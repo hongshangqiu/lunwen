@@ -1,0 +1,57 @@
+[
+  {
+    "sceneId": "db_conn_high",
+    "sceneName": "数据库连接数过高",
+    "serviceName": "hotel-service",
+    "startTime": "2026-03-11T09:00:00+08:00",
+    "endTime": "2026-03-11T09:15:00+08:00",
+    "metricList": ["cpu_usage", "db_connections", "error_rate"],
+    "logKeywords": ["timeout", "connection", "pool", "exhausted"],
+    "questionTemplate": "为什么服务在该时间窗内响应变慢？",
+    "expectedIssue": "数据库连接池耗尽"
+  },
+  {
+    "sceneId": "cpu_spike",
+    "sceneName": "CPU 使用率飙升",
+    "serviceName": "hotel-service",
+    "startTime": "2026-03-11T10:00:00+08:00",
+    "endTime": "2026-03-11T10:10:00+08:00",
+    "metricList": ["cpu_usage", "request_count"],
+    "logKeywords": ["CPU", "spike", "intensive"],
+    "questionTemplate": "为什么服务的 CPU 使用率突然飙升？",
+    "expectedIssue": "CPU 密集型计算"
+  },
+  {
+    "sceneId": "disk_full",
+    "sceneName": "磁盘空间占满",
+    "serviceName": "hotel-service",
+    "startTime": "2026-03-11T11:00:00+08:00",
+    "endTime": "2026-03-11T11:10:00+08:00",
+    "metricList": ["iowait", "disk_usage"],
+    "logKeywords": ["No space left", "Disk full", "CRITICAL"],
+    "questionTemplate": "系统提示磁盘空间不足，该如何处理？",
+    "expectedIssue": "日志暴增占用磁盘"
+  },
+  {
+    "sceneId": "slow_sql",
+    "sceneName": "慢 SQL 性能瓶颈",
+    "serviceName": "hotel-service",
+    "startTime": "2026-03-11T12:00:00+08:00",
+    "endTime": "2026-03-11T12:10:00+08:00",
+    "metricList": ["p95_latency", "db_connections"],
+    "logKeywords": ["Slow query", "Scan 1M rows", "WARNING"],
+    "questionTemplate": "查询接口极其缓慢，请定位原因。",
+    "expectedIssue": "缺少索引的全表扫描"
+  },
+  {
+    "sceneId": "service_avalanche",
+    "sceneName": "微服务高错误率",
+    "serviceName": "hotel-service",
+    "startTime": "2026-03-11T13:00:00+08:00",
+    "endTime": "2026-03-11T13:10:00+08:00",
+    "metricList": ["error_rate", "request_count"],
+    "logKeywords": ["500", "Internal Server Error", "avalanche"],
+    "questionTemplate": "服务支付接口报错率突增，请分析原因。",
+    "expectedIssue": "后端逻辑异常导致雪崩"
+  }
+]
