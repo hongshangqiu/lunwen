@@ -184,6 +184,7 @@
 \RequirePackage { amsmath , amssymb , amsthm , mathtools }
 
 \RequirePackage { tikz, pgfplots } % 绘图
+\usetikzlibrary{positioning,shapes.geometric}
 \pgfplotsset { compat = 1.17 }
 \RequirePackage [ normalem ] { ulem }
 

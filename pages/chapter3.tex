@@ -325,23 +325,21 @@ metricResults & 各指标统计结果列表 \\
 \begin{algorithm}
 \caption{证据融合算法}
 \label{algo:evidence-builder}
-\begin{algorithmic}[1]
-\Require 用户问题$question$，服务名称$service$，时间范围$time\_range$，知识检索结果$knowledge$，指标摘要$metrics$，日志摘要$logs$
-\Ensure 分析上下文$context$
-\State $anomalies \gets extract\_anomalies(metrics)$
-\State $severity \gets assess\_severity(metrics, logs, anomalies)$
-\State $context \gets AnalysisContext($
-\State \quad $question=question,$
-\State \quad $service=service,$
-\State \quad $time\_range=time\_range,$
-\State \quad $retrieved\_knowledge=knowledge,$
-\State \quad $metrics\_summary=metrics,$
-\State \quad $log\_summary=logs,$
-\State \quad $anomaly\_indicators=anomalies,$
-\State \quad $severity=severity$
-\State $)$
-\State \Return $context$
-\end{algorithmic}
+\DontPrintSemicolon
+\SetKwInput{KwIn}{输入}
+\SetKwInput{KwOut}{输出}
+\SetKwFunction{Extract}{extract\_anomalies}
+\SetKwFunction{Assess}{assess\_severity}
+\SetKwFunction{Build}{AnalysisContext}
+
+\KwIn{$question$, $service$, $time\_range$, $knowledge$, $metrics$, $logs$}
+\KwOut{$context$}
+
+$anomalies \gets \Extract{metrics}$\;
+$severity \gets \Assess{metrics, logs, anomalies}$\;
+$context \gets \Build{question, service, time\_range, knowledge, metrics, logs, anomalies, severity}$\;
+\Return{$context$}
+
 \end{algorithm}
 
 \section{基于大模型的根因分析引擎}
@@ -470,20 +468,31 @@ RCA推理的完整流程如算法~\ref{algo:rca-engine}所示。
 \begin{algorithm}
 \caption{RCA推理算法}
 \label{algo:rca-engine}
-\begin{algorithmic}[1]
-\Require 分析上下文$context$
-\Ensure RCA结果$result$
-\State $context\_dict \gets format\_context\_for\_rca(context)$
-\State $prompt \gets build\_rca\_prompt(context\_dict)$
-\State $raw\_response \gets llm\_service.call\_llm(prompt, system\_prompt)$
-\State $is\_valid, parsed \gets validate\_json\_output(raw\_response)$
+\DontPrintSemicolon
+\SetKwInput{KwIn}{输入}
+\SetKwInput{KwOut}{输出}
+\SetKwFunction{Format}{format\_context\_for\_rca}
+\SetKwFunction{Build}{build\_rca\_prompt}
+\SetKwFunction{CallLLM}{llm\_service.call\_llm}
+\SetKwFunction{Validate}{validate\_json\_output}
+\SetKwFunction{Fallback}{fallback\_rule\_analysis}
+\SetKwFunction{Parse}{parse\_json}
+
+\KwIn{$context$}
+\KwOut{$result$}
+
+$context\_dict \gets \Format{context}$\;
+$prompt \gets \Build{context\_dict}$\;
+$raw\_response \gets \CallLLM{prompt}$\;
+$is\_valid, parsed \gets \Validate{raw\_response}$\;
 \If{NOT $is\_valid$}
-    \State $result \gets fallback\_rule\_analysis(context)$
-    \State \Return $result$
-\EndIf
-\State $result \gets parse\_json(parsed)$
-\State \Return $RCAResult(result)$
-\end{algorithmic}
+{
+    $result \gets \Fallback{context}$\;
+    \Return{$result$}
+}
+$result \gets \Parse{parsed}$\;
+\Return{$RCAResult(result)$}
+
 \end{algorithm}
 
 \section{原型系统实现}
@@ -529,18 +538,28 @@ RCA推理的完整流程如算法~\ref{algo:rca-engine}所示。
 \begin{algorithm}
 \caption{端到端RAG Pipeline}
 \label{algo:rag-pipeline}
-\begin{algorithmic}[1]
-\Require 用户问题$question$，服务名称$service$，时间范围$time\_range$
-\Ensure 分析结果$result$
-\State $knowledge \gets retrieve\_knowledge(question, service)$
-\State $metrics \gets query\_metrics(service, time\_range)$
-\State $logs \gets query\_logs(service, time\_range)$
-\State $context \gets build\_context(question, service, time\_range,$
-\State \quad $knowledge, metrics, logs)$
-\State $result \gets run\_rca(context)$
-\State $elapsed\_time \gets measure\_time()$
-\State \Return $build\_response(context, result, elapsed\_time)$
-\end{algorithmic}
+\DontPrintSemicolon
+\SetKwInput{KwIn}{输入}
+\SetKwInput{KwOut}{输出}
+\SetKwFunction{Retrieve}{retrieve\_knowledge}
+\SetKwFunction{QueryM}{query\_metrics}
+\SetKwFunction{QueryL}{query\_logs}
+\SetKwFunction{BuildC}{build\_context}
+\SetKwFunction{RunRCA}{run\_rca}
+\SetKwFunction{Measure}{measure\_time}
+\SetKwFunction{BuildR}{build\_response}
+
+\KwIn{$question$, $service$, $time\_range$}
+\KwOut{$result$}
+
+$knowledge \gets \Retrieve{question, service}$\;
+$metrics \gets \QueryM{service, time\_range}$\;
+$logs \gets \QueryL{service, time\_range}$\;
+$context \gets \BuildC{question, service, time\_range, knowledge, metrics, logs}$\;
+$result \gets \RunRCA{context}$\;
+$elapsed\_time \gets \Measure{}$\;
+\Return{$\BuildR{context, result, elapsed\_time}$}
+
 \end{algorithm}
 
 该Pipeline的设计使得各模块可以独立开发和测试，同时通过统一的数据结构（AnalysisContext和RCAResult）保证模块间的无缝衔接。
