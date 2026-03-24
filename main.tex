@@ -1,0 +1,42 @@
+%% Bachelor Thesis Template of Wuhan Uniersity
+%%
+%% Created by Fing
+
+\documentclass[]{WHUBachelor}
+
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+%%----------- 封面部分 ----------- %%
+  \stunum{2022302111044}
+  \ctitle{基于大模型的软件运维方法}
+  \cschool{计算机学院}
+  \cmajor{软件工程}
+  \cauthor{崔晋闻}
+  \cadvisor{应时\quad 教授}
+  \cdate{二〇二六年三月}
+  \maketitlepage            % 封面
+  \makestatement            % 申明
+
+%%----------- 前言部分 ----------- %%
+  \include{pages/abstract}  % 摘要
+  \contents                 % 目录
+
+%%----------- 主体部分 ----------- %%
+  \include{pages/chapter1}
+  \include{pages/chapter2}
+  \include{pages/chapter3}
+  \include{pages/chapter4}
+
+%%----------- 结尾部分 ----------- %%
+  \clearpage
+  \phantomsection
+  \addcontentsline{toc}{chapter}{参考文献}
+  \bibliography{ref/refs}   % 参考文献
+
+  \include{pages/thanks}    % 致谢
+  \include{pages/appendix}  % 附录
+
+\end{document}
