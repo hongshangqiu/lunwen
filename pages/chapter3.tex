@@ -79,7 +79,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 （1）\textbf{用户交互层}：基于Streamlit构建，提供友好的Web界面。用户可以通过自然语言向系统描述故障现象，系统以结构化形式返回诊断结果，包括故障摘要、根因分析、修复建议和置信度评分。
 
-（2）\textbf{服务接口层}：基于FastAPI框架实现RESTful API接口，包括诊断分析接口，知识检索接口、实验评估接口等。该层负责接收用户请求，协调下游服务并返回格式化结果。
+（2）\textbf{服务接口层}：基于FastAPI框架实现RESTful API接口，包括诊断分析接口、知识检索接口、实验评估接口等。该层负责接收用户请求，协调下游服务并返回格式化结果。
 
 （3）\textbf{核心逻辑层}：包含三个核心模块——知识检索模块、证据融合模块和RCA推理引擎。知识检索模块负责从向量数据库中召回相关文档；证据融合模块负责将多源数据统一组织为分析上下文；RCA推理引擎负责引导大语言模型完成根因分析。
 
@@ -111,7 +111,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 \textbf{向量嵌入表示}：使用sentence-transformers预训练模型（all-MiniLM-L6-v2）将文本片段转换为384维语义向量~\cite{zhang2024rag4itops}。该模型在语义相似度任务上表现优异，且推理效率较高，适合实时检索场景。嵌入时将元数据一并编码，支持在检索时按服务类型、故障类型等维度进行过滤。
 
-\textbf{向量存储索引}：将向量与原始文本，元数据一同存入ChromaDB向量数据库~\cite{zhang2024rag4itops}。ChromaDB采用HNSW（Hierarchical Navigable Small World）索引算法，能够在保证检索精度的同时实现毫秒级的Top-K查询。
+\textbf{向量存储索引}：将向量与原始文本、元数据一同存入ChromaDB向量数据库~\cite{zhang2024rag4itops}。ChromaDB采用HNSW（Hierarchical Navigable Small World）索引算法，能够在保证检索精度的同时实现毫秒级的Top-K查询。
 
 知识库构建与检索的完整流程如图~\ref{fig:knowledge-base-flow}所示。
 
@@ -122,7 +122,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
     node distance=1cm,
     font=\songti\zihao{-5},
     proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.8cm, minimum height=1cm, align=center},
-    data/.style={draw, ellipse, fill=green!15, minimum width=2.5cm, align=center},
+    data/.style={draw, shape=ellipse, fill=green!15, minimum width=2.5cm, align=center},
     arrow/.style={->, thick}
 ]
 
@@ -139,7 +139,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 \node[anchor=north, font=\songti\zihao{-5}, color=blue] at (-5, 2.5) {知识库构建阶段};
 
-\node[data] ( vectorDB) at (0, -1) {ChromaDB};
+\node[data] (vdb) at (0, -1) {ChromaDB};
 
 \node[proc] (query) at (5, 2) {用户查询};
 \node[proc] (qembed) at (5, 0.5) {查询向量化};
@@ -162,7 +162,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \node[anchor=east, font=\songti\zihao{-5}] at (-6.5, -2) {保留元信息};
 
 \node[proc, fill=green!15] (filter) at (0, -3) {元数据过滤};
-\draw[arrow] (filter) -- (vectorDB);
+\draw[arrow] (filter) -- (vdb);
 \node[anchor=north, font=\songti\zihao{-5}, color=green!60!black] at (0, -2.2) {服务名/故障类型};
 
 \end{tikzpicture}
@@ -240,7 +240,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
     >=stealth,
     node distance=1cm,
     font=\songti\zihao{-5},
-    input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm, align=center},
+    input/.style={draw, shape=ellipse, fill=gray!15, minimum width=2.5cm, align=center},
     proc/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.9cm, align=center},
     output/.style={draw, rounded corners, fill=green!15, minimum width=3.5cm, minimum height=1.2cm, align=center},
     arrow/.style={->, thick}
@@ -385,10 +385,10 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
     >=stealth,
     node distance=1.2cm,
     font=\songti\zihao{-5},
-    input/.style={draw, ellipse, fill=gray!15, minimum width=2.5cm, align=center},
+    input/.style={draw, shape=ellipse, fill=gray!15, minimum width=2.5cm, align=center},
     proc/.style={draw, rounded corners, fill=blue!15, minimum width=3.2cm, minimum height=1cm, align=center},
     output/.style={draw, rounded corners, fill=green!15, minimum width=3cm, minimum height=1cm, align=center},
-    decision/.style={draw, regular polygon, regular polygon sides=3, fill=yellow!15, minimum size=2cm, align=center},
+    dia/.style={draw, shape=diamond, fill=yellow!15, minimum width=1.5cm, align=center},
     arrow/.style={->, thick}
 ]
 
@@ -398,7 +398,7 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 
 \node[proc, fill=purple!15] (llm) at (0, 0) {调用LLM API};
 
-\node[decision] (parse) at (0, -1.8) {解析成功?};
+\node[dia] (parse) at (0, -1.8) {解析成功?};
 
 \node[output] (success) at (0, -3.5) {结构化诊断结果};
 
@@ -489,21 +489,21 @@ $prompt$ $\gets$ BuildRCAPrompt($context$) \;
     >=stealth,
     node distance=0.8cm,
     font=\songti\zihao{-5},
-    step/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.8cm, align=center},
+    box/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.8cm, align=center},
     arrow/.style={->, thick, >=stealth}
 ]
 
-\node[step] (input) at (0, 0) {1. 用户输入};
+\node[box] (input) at (0, 0) {1. 用户输入};
 
-\node[step, fill=green!15] (retrieve) at (0, -1.5) {2. 知识检索};
+\node[box, fill=green!15] (retrieve) at (0, -1.5) {2. 知识检索};
 
-\node[step, fill=orange!15] (data) at (0, -3) {3. 获取实时数据};
+\node[box, fill=orange!15] (data) at (0, -3) {3. 获取实时数据};
 
-\node[step, fill=purple!15] (fusion) at (0, -4.5) {4. 证据融合};
+\node[box, fill=purple!15] (fusion) at (0, -4.5) {4. 证据融合};
 
-\node[step, fill=red!15] (rca) at (0, -6) {5. RCA推理};
+\node[box, fill=red!15] (rca) at (0, -6) {5. RCA推理};
 
-\node[step, fill=green!15] (output) at (0, -7.5) {6. 输出诊断结果};
+\node[box, fill=green!15] (output) at (0, -7.5) {6. 输出诊断结果};
 
 \node[anchor=east, font=\songti\zihao{-5}, color=green!60!black] at (-4.5, -1.5) {ChromaDB};
 \node[anchor=east, font=\songti\zihao{-5}, color=orange!70!black] at (-4.5, -3) {日志/指标};
