@@ -1,7 +1,29 @@
-% 英文摘要
-
-{\small With the widespread adoption of cloud computing, microservices, and containerization, modern software systems have grown increasingly large and complex, posing significant challenges to traditional operations and maintenance workflows that rely heavily on manual expertise. To improve fault diagnosis efficiency and operational intelligence, this thesis designs and implements an LLM-based intelligent fault diagnosis prototype system for software operations --- LLM-Ops Copilot.}
-
-{\small First, a domain-specific knowledge base for software operations is constructed. Based on the ChromaDB vector database, the knowledge base incorporates standard operating procedures (SOP), historical fault cases, and system architecture documentation. A hierarchical recursive chunking strategy and hybrid retrieval method are designed, achieving vectorized storage, semantic retrieval, and metadata filtering by service name and fault type. Second, a multi-source operations data fusion method is proposed. The EvidenceBuilder module is designed with a three-level log processing pipeline, anomaly metric identification, correlation analysis, and severity assessment, integrating retrieved knowledge, log summaries, and monitoring metric descriptions into a unified structured analysis context. Third, an LLM-based Root Cause Analysis (RCA) engine is designed and implemented. A complete structured prompt template is designed, including role definition, context specification, reasoning constraints, and output format specification, guiding the model to analyze in the logical sequence of "fault summary --- evidence analysis --- root cause hypothesis --- repair suggestions". The template enables the model to assign confidence scores, perform multi-hypothesis reasoning, and identify data gaps automatically. Finally, seven typical fault scenarios and four sets of comparative experiments are designed to evaluate the effectiveness of the method.}
-
-{\small Experimental results demonstrate that relying solely on the LLM for direct responses leads to significant limitations in domain expertise, with an accuracy of only 43\%. Introducing RAG-based knowledge augmentation improves this to 57\%; further integrating real-time logs and monitoring metrics increases it to 71\%; and the complete method achieves 86\% accuracy with 100\% Top-3 accuracy and 78\% evidence coverage rate. Typical case analysis validates the critical role of evidence fusion and structured prompting in improving diagnosis quality, providing a novel technical pathway for intelligent operations and maintenance.}
+ 1 % 英文摘要
+   2
+   3 {\small With the widespread adoption of cloud computing, microservices, and containerization, modern software
+     systems have grown increasingly large and complex, posing significant challenges to traditional operations and
+     maintenance workflows that rely heavily on manual expertise. To improve fault diagnosis efficiency and
+     operational intelligence, this thesis designs and implements an LLM-based intelligent fault diagnosis prototype
+     system for software operations --- LLM-Ops Copilot.}
+   4
+   5 {\small First, a domain-specific knowledge base for software operations is constructed. Based on the ChromaDB
+     vector database, the knowledge base incorporates standard operating procedures (SOP), historical fault cases,
+     and system architecture documentation. A hierarchical recursive chunking strategy and hybrid retrieval method
+     are designed, achieving vectorized storage, semantic retrieval, and metadata filtering by service name and
+     fault type. Second, a multi-source operations data fusion method is proposed. The EvidenceBuilder module is
+     designed with a three-level log processing pipeline, anomaly metric identification, correlation analysis, and
+     severity assessment, integrating retrieved knowledge, log summaries, and monitoring metric descriptions into a
+     unified structured analysis context. Third, an LLM-based Root Cause Analysis (RCA) engine is designed and
+     implemented. A complete structured prompt template is designed, including role definition, context
+     specification, reasoning constraints, and output format specification, guiding the model to analyze in the
+     logical sequence of "fault summary --- evidence analysis --- root cause hypothesis --- repair suggestions". The
+     template enables the model to assign confidence scores, perform multi-hypothesis reasoning, and identify data
+     gaps automatically. Finally, seven typical fault scenarios and four sets of comparative experiments are
+     designed to evaluate the effectiveness of the method.}
+   6
+   7 {\small Experimental results demonstrate that relying solely on the LLM for direct responses leads to
+     significant limitations in domain expertise, with an accuracy of only 43\%. Introducing RAG-based knowledge
+     augmentation improves this to 57\%; further integrating real-time logs and monitoring metrics increases it to
+     71\%; and the complete method achieves 86\% accuracy with 100\% Top-3 accuracy and 78\% evidence coverage rate.
+     Typical case analysis validates the critical role of evidence fusion and structured prompting in improving
+     diagnosis quality, providing a novel technical pathway for intelligent operations and maintenance.}
