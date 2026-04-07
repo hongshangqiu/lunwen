@@ -45,7 +45,7 @@
 如果在使用中发现问题，请按照以下步骤操作：
 
 1. 阅读学校的[书写印制规范文件](https://github.com/mtobeiyf/whu-thesis/files/4638713/default.pdf)，判断是否符合要求；
-2. 前往项目 [Wiki](https://github.com/mtobeiyf/whu-thesis/wiki) 查看相关说明；
+2. 前往项目 [Wiki](https://github.com/mtobeiyf/whu-thesis/wiki) 查看相关说明；  
 3. 将 TeX 发行版和宏包升级到最新，并且将模板升级到 Github 上最新版本，查看问题是否已经修复；
 4. 在 [GitHub Issues](https://github.com/mtobeiyf/whu-thesis/issues) 中搜索该问题的关键词；
 5. 提出新的 [Issue](https://github.com/mtobeiyf/whu-thesis/issues)，并说明系统、TeX 版本、出现的问题等关键信息。
