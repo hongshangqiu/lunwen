@@ -1,7 +1,5 @@
 \chapter{系统设计与方法实现}
 
-\usetikzlibrary{shapes.geometric}
-
 围绕"基于大模型的软件运维方法"这一研究主题，本文设计并实现了一个面向软件运维场景的智能故障诊断原型系统——LLM-Ops Copilot。本章从系统设计目标出发，依次介绍领域知识库构建、证据融合方法、RCA推理引擎和原型系统实现。
 
 \section{系统设计目标}
@@ -124,7 +122,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
     node distance=1cm,
     font=\songti\zihao{-5},
     proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.8cm, minimum height=1cm, align=center},
-    data/.style={draw, shape=ellipse, fill=green!15, minimum width=2.5cm, align=center},
+    data/.style={draw, ellipse, fill=green!15, minimum width=2.5cm, align=center},
     arrow/.style={->, thick}
 ]
 
@@ -539,4 +537,3 @@ $P$ $\gets$ $\text{构建提示词}(C)$ \;
 \section{本章小结}
 
 本章详细介绍了LLM-Ops Copilot原型系统的设计与实现。系统通过构建面向运维领域的知识库，利用检索增强生成技术获取领域知识背景~\cite{zhang2024rag4itops}；通过证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
-rompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
