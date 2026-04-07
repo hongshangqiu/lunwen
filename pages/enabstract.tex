@@ -1,12 +1,12 @@
- 1 % 英文摘要
-   2
-   3 {\small With the widespread adoption of cloud computing, microservices, and containerization, modern software
+  % 英文摘要
+   
+    {\small With the widespread adoption of cloud computing, microservices, and containerization, modern software
      systems have grown increasingly large and complex, posing significant challenges to traditional operations and
      maintenance workflows that rely heavily on manual expertise. To improve fault diagnosis efficiency and
      operational intelligence, this thesis designs and implements an LLM-based intelligent fault diagnosis prototype
-用于软件运维的系统  --- LLM-Ops 助手。}  
-   4
-   5 {\small First, a domain-specific knowledge base for software operations is constructed. Based on the ChromaDB
+     system for software operations --- LLM-Ops Copilot.}
+
+   {\small First, a domain-specific knowledge base for software operations is constructed. Based on the ChromaDB
      vector database, the knowledge base incorporates standard operating procedures (SOP), historical fault cases,
      and system architecture documentation. A hierarchical recursive chunking strategy and hybrid retrieval method
      are designed, achieving vectorized storage, semantic retrieval, and metadata filtering by service name and
@@ -20,8 +20,8 @@
      template enables the model to assign confidence scores, perform multi-hypothesis reasoning, and identify data
      gaps automatically. Finally, seven typical fault scenarios and four sets of comparative experiments are
      designed to evaluate the effectiveness of the method.}
-   6
-   7 {\small Experimental results demonstrate that relying solely on the LLM for direct responses leads to
+
+    {\small Experimental results demonstrate that relying solely on the LLM for direct responses leads to
      significant limitations in domain expertise, with an accuracy of only 43\%. Introducing RAG-based knowledge
      augmentation improves this to 57\%; further integrating real-time logs and monitoring metrics increases it to
      71\%; and the complete method achieves 86\% accuracy with 100\% Top-3 accuracy and 78\% evidence coverage rate.
