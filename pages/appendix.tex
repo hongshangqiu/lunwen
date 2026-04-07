@@ -87,30 +87,3 @@ source_type: SOP
 ## 4. 修复方案
 ...
 \end{verbatim}
-
-\subsection{实验完整数据}
-
-\subsection{各场景详细实验结果}
-
-下表记录了四个实验组在七个测试场景上的详细根因定位准确率数据。
-
-\begin{table}[htbp]
-\centering
-\caption{各场景详细准确率对比}
-\label{tab:scene-accuracy}
-\begin{tabular}{lcccc}
-\toprule
-测试场景 & LLM-Only & RAG-Only & RAG+Realtime & Full-Method \\
-\midrule
-CPU使用率飙升 & 60\% & 80\% & 100\% & 100\% \\
-数据库连接池耗尽 & 40\% & 60\% & 80\% & 100\% \\
-内存泄漏 & 40\% & 60\% & 60\% & 80\% \\
-网络延迟增加 & 20\% & 40\% & 60\% & 60\% \\
-慢SQL查询 & 60\% & 80\% & 80\% & 100\% \\
-服务雪崩 & 20\% & 40\% & 60\% & 80\% \\
-磁盘空间不足 & 60\% & 80\% & 100\% & 100\% \\
-\midrule
-平均准确率 & 43\% & 57\% & 71\% & 86\% \\
-\bottomrule
-\end{tabular}
-\end{table}

@@ -48,6 +48,32 @@
 
 本文技术路线如下：首先是需求分析与知识库构建，完成运维文档的收集整理、文本切分、向量化与索引建立；其次是证据融合器设计与实现，完成日志处理、指标处理和上下文构建；然后是RCA引擎设计与实现，完成结构化提示模板和后备规则机制；最后通过测试案例验证系统效果。
 
+本文的技术路线图如图~\ref{fig:roadmap} 所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=stealth,
+    node distance=1.5cm,
+    font=\songti\zihao{-5},
+    proc/.style={draw, rounded corners, fill=blue!10, minimum width=3cm, minimum height=0.8cm, align=center},
+    arrow/.style={->, thick}
+]
+
+\node[proc] (step1) at (0, 3) {需求分析与知识库构建};
+\node[proc] (step2) at (0, 1.5) {多源数据处理与融合};
+\node[proc] (step3) at (0, 0) {根因分析引擎设计};
+\node[proc] (step4) at (0, -1.5) {系统集成与验证评估};
+
+\draw[arrow] (step1) -- (step2);
+\draw[arrow] (step2) -- (step3);
+\draw[arrow] (step3) -- (step4);
+
+\end{tikzpicture}
+\caption{本文技术路线图}
+\label{fig:roadmap}
+\end{figure}
+
 \section{论文结构安排}
 
 本文共分为五章。
