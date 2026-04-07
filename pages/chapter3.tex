@@ -349,14 +349,19 @@ $context$ $\gets$ AnalysisContext(...) \;
 
 \begin{verbatim}
 {
-  "summary": "故障现象总结",
-  "analysis": {
-    "root_causes": [
-      {"cause": "根因", "confidence": 0.85}
-    ]
-  },
-  "primary_fix": {"steps": ["步骤1", "步骤2"]},
-  "confidence": 0.85
+    "incident_summary": "一句话故障描述",
+    "suspected_root_causes": [
+        {
+            "cause": "根因描述",
+            "confidence": 0.85,
+            "supporting_evidence": ["证据1", "证据2"],
+            "contradicting_evidence": []
+        }
+    ],
+    "reasoning_chain": ["推理步骤1", "推理步骤2"],
+    "verification_steps": ["验证步骤1", "验证步骤2"],
+    "repair_suggestions": ["建议1", "建议2"],
+    "need_more_data": ["缺失数据1"]
 }
 \end{verbatim}
 
@@ -431,21 +436,23 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 RCA推理的伪代码实现如算法~\ref{algo:rca-engine}所示。
 
 \begin{algorithm}
+\SetKwInOut{Input}{输入}
+\SetKwInOut{Output}{输出}
 \caption{RCA推理算法}
 \label{algo:rca-engine}
-\KwIn{$context$}
-\KwOut{$result$}
-$prompt$ $\gets$ BuildRCAPrompt($context$) \;
-\If{调用LLMAPI成功}{
-    $raw\_response$ $\gets$ CallLLMAPI($prompt$) \;
-    $result$ $\gets$ ParseJSON($raw\_response$) \;
-    \If{$result$有效}{
-        \Return{$result$}
+\Input{统一分析上下文 $C$}
+\Output{诊断结果 $R$}
+$P$ $\gets$ $\text{构建提示词}(C)$ \;
+\If{调用大模型成功}{
+    $R_{raw}$ $\gets$ $\text{调用大模型}(P)$ \;
+    $R$ $\gets$ $\text{解析JSON}(R_{raw})$ \;
+    \If{$R$ 有效}{
+        \Return{$R$}
     }
 }
 \Else{
-    $result$ $\gets$ RuleBasedAnalysis($context$.anomaly\_indicators) \;
-    \Return{$result$}
+    $R$ $\gets$ $\text{规则匹配}(C_{anomalies})$ \;
+    \Return{$R$}
 }
 \end{algorithm}
 
@@ -530,3 +537,4 @@ $prompt$ $\gets$ BuildRCAPrompt($context$) \;
 \section{本章小结}
 
 本章详细介绍了LLM-Ops Copilot原型系统的设计与实现。系统通过构建面向运维领域的知识库，利用检索增强生成技术获取领域知识背景~\cite{zhang2024rag4itops}；通过证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
+rompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
