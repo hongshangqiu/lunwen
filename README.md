@@ -70,7 +70,7 @@
 - [HUSTPaperTemp](https://github.com/skinaze/HUSTPaperTemp)
 - [SJTUThesis](https://github.com/sjtug/SJTUThesis)
 - [ustcthesis](https://github.com/ustctug/ustcthesis)
-- [TJU-thesis-template](https://github.com/liangzhenduo0608/TJU-thesis-template)
+- [TJU-thesis-template](https://github.com/liangzhenduo0608/TJU-thesis-template)  
 - [xdba-thesis](https://github.com/xdlinux/xdba-thesis)
 - [NEUBachelorThesis](https://github.com/tzaiyang/NEUBachelorThesis)
 
