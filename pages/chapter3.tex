@@ -188,7 +188,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 日志数据是故障诊断的重要依据，但原始日志具有体量大、噪声多的特点~\cite{liu2023logprompt}。本文设计了三级日志处理流水线：
 
-\textbf{第一级：日志过滤}。根据服务名和时间范围进行初步过滤，排除与当前故障无关的日志~\cite{ji2024superlog}。时间范围通常设定为故障发生前后各30分钟。
+\textbf{第一级：基于时间窗与TraceID的日志关联}。在分布式系统中，单一服务的日志不足以反映故障全貌。系统首先以故障发生时间为基准，提取滑动时间窗（如故障前后5分钟）内的日志~\cite{ji2024superlog}。系统提取异常请求的链路追踪标识（TraceID），通过该TraceID将分散在不同微服务组件中的日志串联起来，形成统一的上下文，以排除同一时间段内无关请求的干扰。
 
 \textbf{第二级：日志分类}。将过滤后的日志按级别分类~\cite{liu2023logprompt}，重点关注ERROR和WARNING级别日志。通过正则表达式匹配常见错误模式（如Connection timeout、OutOfMemory、NullPointerException等），提取关键错误信息。
 
@@ -520,6 +520,24 @@ $P$ $\gets$ $\text{构建提示词}(C)$ \;
 \draw[arrow] (input) -- (retrieve);
 \draw[arrow] (retrieve) -- (data);
 \draw[arrow] (data) -- (fusion);
+\draw[arrow] (fusion) -- (rca);
+\draw[arrow] (rca) -- (output);
+
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -4.5) {返回内容:};
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -5) {故障摘要};
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -5.5) {根因假设};
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -6) {置信度评分};
+\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -6.5) {修复建议};
+
+\end{tikzpicture}
+\caption{端到端诊断Pipeline流程}
+\label{fig:pipeline-flow}
+\end{figure}
+
+\section{本章小结}
+
+本章详细介绍了LLM-Ops Copilot原型系统的设计与实现。系统通过构建面向运维领域的知识库，利用检索增强生成技术获取领域知识背景~\cite{zhang2024rag4itops}；通过证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
+ (data) -- (fusion);
 \draw[arrow] (fusion) -- (rca);
 \draw[arrow] (rca) -- (output);
 
