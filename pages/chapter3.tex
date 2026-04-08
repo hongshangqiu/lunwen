@@ -23,40 +23,45 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \begin{tikzpicture}[
     >=stealth,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.75cm, align=center},
+    box/.style={draw, rounded corners, minimum width=2.35cm, minimum height=0.82cm, align=center},
     arrow/.style={->, thick}
 ]
-% 纵向分层拉开间距，避免外部数据源与核心层重叠
-\node[box, fill=red!15, draw=red!60, minimum width=8.5cm] (ui) at (0, 3.2) {Streamlit Web界面};
-\node[box, fill=green!15, draw=green!60, minimum width=8.5cm] (api) at (0, 2) {FastAPI API};
+% 外部数据源单独成行标题，与「知识检索」框分离，避免字溢出或视觉合并
+\node[box, fill=red!15, draw=red!60, minimum width=9cm] (ui) at (0, 4.15) {Streamlit Web界面};
+\node[box, fill=green!15, draw=green!60, minimum width=9cm] (api) at (0, 2.9) {FastAPI API};
 
-\node[box, fill=white, draw=orange!60] (knowledge) at (-3.4, 0.5) {知识检索};
-\node[box, fill=white, draw=orange!60] (evidence) at (0, 0.5) {证据融合};
-\node[box, fill=white, draw=orange!60] (rca) at (3.4, 0.5) {RCA引擎};
-\node[box, fill=orange!25, draw=orange!60, dashed, minimum width=1.8cm] (llmapi) at (3.4, 1.35) {LLM API};
+\node[box, fill=white, draw=orange!60, text width=2.15cm, align=center] (knowledge) at (-3.45, 1.2) {知识检索};
+\node[box, fill=white, draw=orange!60, text width=2.15cm, align=center] (evidence) at (0, 1.2) {证据融合};
+\node[box, fill=white, draw=orange!60, text width=2.15cm, align=center] (rca) at (2.75, 1.2) {RCA引擎};
+\node[box, fill=orange!20, draw=orange!60, dashed, minimum width=1.75cm, minimum height=0.76cm] (llmapi) at (5.15, 1.2) {LLM API};
 
-\node[font=\songti\zihao{-5}, anchor=south] at (-3.4, -0.15) {外部数据源};
-\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcLog) at (-3.4, -0.85) {日志};
-\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcMon) at (0, -0.85) {监控};
-\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcDoc) at (3.4, -0.85) {文档};
+\node[font=\songti\zihao{-5}, inner sep=2pt] (extlab) at (0, 0.35) {外部数据源};
+\node[box, fill=gray!12, draw=gray, minimum width=1.5cm] (srcLog) at (-3.45, -0.72) {日志};
+\node[box, fill=gray!12, draw=gray, minimum width=1.5cm] (srcMon) at (0, -0.72) {监控};
+\node[box, fill=gray!12, draw=gray, minimum width=1.5cm] (srcDoc) at (3.45, -0.72) {文档};
 
-\node[box, fill=blue!12, draw=blue!60] (chroma) at (-3.4, -2.4) {ChromaDB};
-\node[box, fill=blue!12, draw=blue!60] (mysql) at (0, -2.4) {MySQL};
-\node[box, fill=blue!12, draw=blue!60] (fs) at (3.4, -2.4) {文件系统};
+\node[box, fill=blue!12, draw=blue!60] (chroma) at (-3.45, -2.6) {ChromaDB};
+\node[box, fill=blue!12, draw=blue!60] (mysql) at (0, -2.6) {MySQL};
+\node[box, fill=blue!12, draw=blue!60] (fs) at (3.45, -2.6) {文件系统};
 
 \draw[arrow] (ui) -- (api);
-\draw[arrow] (api) -- (knowledge);
-\draw[arrow] (api) -- (evidence);
-\draw[arrow] (api) -- (rca);
-\draw[arrow] (knowledge) -- (chroma);
-\draw[arrow] (evidence) -- (chroma);
-\draw[arrow] (evidence) -- (mysql);
-\draw[arrow] (evidence) -- (fs);
-\draw[arrow] (rca) -- (llmapi);
+% FastAPI 至三模块：与各自列对齐，避免箭头偏斜
+\draw[arrow] (api.south -| knowledge) -- (knowledge.north);
+\draw[arrow] (api.south -| evidence) -- (evidence.north);
+\draw[arrow] (api.south -| rca) -- (rca.north);
 
-\draw[->, dashed, gray] (srcLog) -- (knowledge);
-\draw[->, dashed, gray] (srcMon) -- (evidence);
-\draw[->, dashed, gray] (srcDoc) -- (evidence);
+% RCA 与 LLM 同高、水平相连，仅保留单向虚线，避免上下双线拥挤
+\draw[arrow, dashed, orange!70!black] (rca.east) -- (llmapi.west);
+
+% 核心到存储：先水平侧移再垂至 y=-1.32（低于灰框下缘），竖线不经过「日志/监控/文档」列中心
+\draw[arrow] (knowledge.south) -- ++(-0.9,0) -- ++(0,-2.11) -- ++(0.9,0) -- (chroma.north);
+\draw[arrow] (evidence.south) -- ++(-0.95,0) -- ++(0,-2.11) -- ++(-2.5,0) -- (chroma.north);
+\draw[arrow] (evidence.south) -- ++(0.95,0) -- ++(0,-2.11) -- ++(-0.95,0) -- (mysql.north);
+\draw[arrow] (evidence.south) -- ++(0.95,0) -- ++(0,-2.11) -- ++(2.5,0) -- (fs.north);
+
+\draw[->, dashed, gray] (srcLog.north) -- (knowledge.south);
+\draw[->, dashed, gray] (srcMon.north) -- (evidence.south);
+\draw[->, dashed, gray] (srcDoc.north) -- (srcDoc.north -| evidence.south) -- (evidence.south);
 \end{tikzpicture}
 \caption{LLM-Ops Copilot系统总体架构}
 \label{fig:system-architecture}
@@ -111,15 +116,15 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
     data/.style={draw, ellipse, fill=green!15, minimum width=2.2cm, minimum height=0.75cm, align=center},
     arrow/.style={->, thick}
 ]
-% 阶段标题置于各列最上方，与首行节点分离，避免重叠
-\node[font=\songti\zihao{-5}, color=blue!70!black] (tleft) at (-4.2, 2.35) {知识库构建阶段};
+% 左列略右移，左侧说明使用 anchor=east，避免与「智能切分」框重叠
+\node[font=\songti\zihao{-5}, color=blue!70!black] (tleft) at (-3.75, 2.35) {知识库构建阶段};
 \node[font=\songti\zihao{-5}, color=blue!70!black] (tright) at (4.2, 2.35) {知识检索阶段};
 
-\node[proc] (doc) at (-4.2, 1.35) {原始文档};
-\node[proc] (clean) at (-4.2, 0) {文档预处理};
-\node[proc] (chunk) at (-4.2, -1.35) {智能切分};
-\node[proc] (embed) at (-4.2, -2.7) {向量嵌入};
-\node[proc] (store) at (-4.2, -4.05) {存入ChromaDB};
+\node[proc] (doc) at (-3.75, 1.35) {原始文档};
+\node[proc] (clean) at (-3.75, 0) {文档预处理};
+\node[proc] (chunk) at (-3.75, -1.35) {智能切分};
+\node[proc] (embed) at (-3.75, -2.7) {向量嵌入};
+\node[proc] (store) at (-3.75, -4.05) {存入ChromaDB};
 
 \draw[arrow] (doc) -- (clean);
 \draw[arrow] (clean) -- (chunk);
@@ -139,13 +144,14 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (retrieve) -- (rerank);
 \draw[arrow] (rerank) -- (result);
 
-\draw[arrow, dashed] (-2.2, -1.35) -- (-1.1, -1.35);
+\draw[arrow, dashed] (-2.15, -1.35) -- (-1.1, -1.35);
 \draw[arrow, dashed] (1.1, -1.35) -- (2.2, -1.35);
 
-\node[text width=2.4cm, align=right, font=\songti\zihao{-6}] at (-6.5, -1.35) {切分策略：\\层级递归切分；\\保留元信息};
+\node[anchor=east, text width=2.85cm, align=right, font=\songti\zihao{-6}, inner sep=2pt] at (-5.45, -1.35) {切分策略：\\层级递归切分；\\保留元信息};
 
-\node[proc, fill=green!12, text width=2.4cm, align=center, minimum height=1.1cm] (filter) at (0, -3.15) {元数据过滤\\[-0.12em]{\footnotesize （服务名/故障类型）}};
-\draw[arrow] (filter) -- (vdb);
+\node[proc, fill=green!12, text width=2.4cm, align=center, minimum height=1.1cm, inner sep=3pt] (filter) at (0, -3.25) {元数据过滤\\[-0.12em]{\footnotesize （服务名/故障类型）}};
+% 箭头略缩短，避免箭头与 ChromaDB 椭圆底边叠在一起
+\draw[arrow, shorten <=2pt, shorten >=6pt] (filter.north) -- (vdb.south);
 
 \end{tikzpicture}
 \caption{知识库构建与检索流程}
@@ -224,46 +230,49 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \begin{tikzpicture}[
     >=stealth,
     font=\songti\zihao{-5},
-    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.4cm, minimum height=0.7cm, align=center},
-    proc/.style={draw, rounded corners, fill=blue!12, minimum width=2.8cm, minimum height=0.85cm, align=center},
+    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.4cm, minimum height=0.72cm, align=center, inner sep=2pt},
+    proc/.style={draw, rounded corners, fill=blue!12, minimum width=3cm, minimum height=0.88cm, align=center, inner sep=3pt},
     output/.style={draw, rounded corners, fill=green!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
     arrow/.style={->, thick}
 ]
-% 分组标题置于椭圆上方，避免与输入节点文字重叠
-\node[font=\songti\zihao{-5}, color=blue!70!black] at (-4, 2.55) {日志处理};
-\node[font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.55) {指标处理};
-\node[font=\songti\zihao{-5}, color=purple!70!black] at (4, 2.55) {知识输入};
+\node[font=\songti\zihao{-5}, color=blue!70!black] at (-4, 2.6) {日志处理};
+\node[font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.6) {指标处理};
+\node[font=\songti\zihao{-5}, color=purple!70!black] at (4, 2.6) {知识输入};
 
-\node[input] (logs) at (-4, 1.65) {原始日志};
-\node[input] (metrics) at (0, 1.65) {监控指标};
-\node[input] (knowledge) at (4, 1.65) {检索知识};
+\node[input] (logs) at (-4, 1.68) {原始日志};
+\node[input] (metrics) at (0, 1.68) {监控指标};
+\node[input] (knowledge) at (4, 1.68) {检索知识};
 
-\node[proc] (filter) at (-4, 0.15) {日志过滤};
-\node[proc] (classify) at (-4, -1.2) {日志分类};
-\node[proc] (summary) at (-4, -2.55) {日志摘要};
+\node[proc] (filter) at (-4, 0.18) {日志过滤};
+\node[proc] (classify) at (-4, -1.15) {日志分类};
+\node[proc] (summary) at (-4, -2.52) {日志摘要};
 
 \draw[arrow] (logs) -- (filter);
 \draw[arrow] (filter) -- (classify);
 \draw[arrow] (classify) -- (summary);
 
-\node[proc, fill=orange!12] (detect) at (0, 0.15) {异常识别};
-\node[proc, fill=orange!12] (convert) at (0, -1.2) {文本转换};
-\node[proc, fill=orange!12] (analyze) at (0, -2.55) {关联分析};
+\node[proc, fill=orange!12] (detect) at (0, 0.18) {异常识别};
+\node[proc, fill=orange!12] (convert) at (0, -1.15) {文本转换};
+\node[proc, fill=orange!12] (analyze) at (0, -2.52) {关联分析};
 
 \draw[arrow] (metrics) -- (detect);
 \draw[arrow] (detect) -- (convert);
 \draw[arrow] (convert) -- (analyze);
 
-\node[proc, fill=purple!12, text width=3.2cm, align=center] (severity) at (0, -3.45) {严重程度评估};
+% 与「关联分析」拉开垂直间距，避免两框贴在一起
+\node[proc, fill=purple!12, text width=3.25cm, align=center, inner sep=4pt] (severity) at (0, -4.55) {严重程度评估};
 
-\node[output] (context) at (0, -4.85) {AnalysisContext};
+\node[output] (context) at (0, -6.05) {AnalysisContext};
 
-\draw[arrow] (summary.east) -- (-1.1,-2.55) -- (-1.1,-3.45) -- (severity.west);
-\draw[arrow] (analyze.south) -- (severity.north);
-\draw[arrow] (knowledge.south) -- (4,-2.25) -- (1,-2.25) -- (1,-3.45) -- (severity.east);
+% 三路在关联分析框下方汇合后再进入「严重程度评估」，连线不穿过「关联分析」矩形内部
+\coordinate (merge) at (0, -3.38);
+\draw[arrow] (analyze.south) -- (merge);
+\draw[arrow] (summary.east) -- (-1.35, -2.52) -- (-1.35, -3.38) -- (merge);
+\draw[arrow] (knowledge.south) -- (4, -3.38) -- (merge);
+\draw[arrow] (merge) -- (severity.north);
 \draw[arrow] (severity) -- (context);
 
-\node[text width=3.2cm, align=left, font=\songti\zihao{-6}] at (5.6, -1.1) {评估因素：异常指标数量；错误日志密度；指标偏离程度};
+\node[text width=3.4cm, align=left, font=\songti\zihao{-6}, inner sep=2pt] at (5.85, 0.85) {评估因素：异常指标数量；错误日志密度；指标偏离程度};
 
 \end{tikzpicture}
 \caption{证据融合器工作流程}
