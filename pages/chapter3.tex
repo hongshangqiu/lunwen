@@ -22,31 +22,27 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \centering
 \begin{tikzpicture}[
     >=stealth,
-    node distance=1.2cm,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, minimum width=3cm, minimum height=0.8cm, align=center},
+    box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.75cm, align=center},
     arrow/.style={->, thick}
 ]
+% 纵向分层拉开间距，避免外部数据源与核心层重叠
+\node[box, fill=red!15, draw=red!60, minimum width=8.5cm] (ui) at (0, 3.2) {Streamlit Web界面};
+\node[box, fill=green!15, draw=green!60, minimum width=8.5cm] (api) at (0, 2) {FastAPI API};
 
-\node[box, fill=blue!15, draw=blue!60, minimum width=10cm] (layer4) at (0, -5) {数据存储层};
+\node[box, fill=white, draw=orange!60] (knowledge) at (-3.4, 0.5) {知识检索};
+\node[box, fill=white, draw=orange!60] (evidence) at (0, 0.5) {证据融合};
+\node[box, fill=white, draw=orange!60] (rca) at (3.4, 0.5) {RCA引擎};
+\node[box, fill=orange!25, draw=orange!60, dashed, minimum width=1.8cm] (llmapi) at (3.4, 1.35) {LLM API};
 
-\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (chroma) at (-3.2, -5) {ChromaDB};
-\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (mysql) at (0, -5) {MySQL};
-\node[box, fill=white, draw=blue!60, minimum width=2.5cm] (fs) at (3.2, -5) {文件系统};
+\node[font=\songti\zihao{-5}, anchor=south] at (-3.4, -0.15) {外部数据源};
+\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcLog) at (-3.4, -0.85) {日志};
+\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcMon) at (0, -0.85) {监控};
+\node[box, fill=gray!12, draw=gray, minimum width=1.6cm] (srcDoc) at (3.4, -0.85) {文档};
 
-\node[box, fill=orange!15, draw=orange!60, minimum width=10cm] (layer3) at (0, -2.8) {核心逻辑层};
-
-\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (knowledge) at (-3.2, -2.8) {知识检索};
-\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (evidence) at (0, -2.8) {证据融合};
-\node[box, fill=white, draw=orange!60, minimum width=2.5cm] (rca) at (3.2, -2.8) {RCA引擎};
-
-\node[box, fill=green!15, draw=green!60, minimum width=10cm] (layer2) at (0, -0.6) {服务接口层};
-
-\node[box, fill=white, draw=green!60, minimum width=3cm] (api) at (0, -0.6) {FastAPI API};
-
-\node[box, fill=red!15, draw=red!60, minimum width=10cm] (layer1) at (0, 1.6) {用户交互层};
-
-\node[box, fill=white, draw=red!60, minimum width=8cm] (ui) at (0, 1.6) {Streamlit Web界面};
+\node[box, fill=blue!12, draw=blue!60] (chroma) at (-3.4, -2.4) {ChromaDB};
+\node[box, fill=blue!12, draw=blue!60] (mysql) at (0, -2.4) {MySQL};
+\node[box, fill=blue!12, draw=blue!60] (fs) at (3.4, -2.4) {文件系统};
 
 \draw[arrow] (ui) -- (api);
 \draw[arrow] (api) -- (knowledge);
@@ -56,20 +52,11 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (evidence) -- (chroma);
 \draw[arrow] (evidence) -- (mysql);
 \draw[arrow] (evidence) -- (fs);
+\draw[arrow] (rca) -- (llmapi);
 
-\node[anchor=south west, font=\songti\zihao{-5}] at (-5, -2.8) {外部数据源:};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (-4.5, -3.5) {日志};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (-2.2, -3.5) {监控};
-\node[box, fill=white, draw=gray, minimum width=1.8cm, font=\songti\zihao{-5}] at (0.1, -3.5) {文档};
-
-\draw[->, dashed, gray] (-4.5, -3.5) -- (-4, -3.2);
-\draw[->, dashed, gray] (-2.2, -3.5) -- (-0.8, -3.2);
-\draw[->, dashed, gray] (0.1, -3.5) -- (2, -3.2);
-
-\node[box, fill=orange!25, draw=orange!60, dashed, minimum width=2cm, font=\songti\zihao{-5}] at (3.2, -1.8) {LLM API};
-
-\draw[arrow] (rca) -- (3.2, -1.8);
-
+\draw[->, dashed, gray] (srcLog) -- (knowledge);
+\draw[->, dashed, gray] (srcMon) -- (evidence);
+\draw[->, dashed, gray] (srcDoc) -- (evidence);
 \end{tikzpicture}
 \caption{LLM-Ops Copilot系统总体架构}
 \label{fig:system-architecture}
@@ -119,51 +106,46 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \centering
 \begin{tikzpicture}[
     >=stealth,
-    node distance=1cm,
     font=\songti\zihao{-5},
-    proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.8cm, minimum height=1cm, align=center},
-    data/.style={draw, ellipse, fill=green!15, minimum width=2.5cm, align=center},
+    proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.6cm, minimum height=0.85cm, align=center},
+    data/.style={draw, ellipse, fill=green!15, minimum width=2.2cm, minimum height=0.75cm, align=center},
     arrow/.style={->, thick}
 ]
+% 阶段标题置于各列最上方，与首行节点分离，避免重叠
+\node[font=\songti\zihao{-5}, color=blue!70!black] (tleft) at (-4.2, 2.35) {知识库构建阶段};
+\node[font=\songti\zihao{-5}, color=blue!70!black] (tright) at (4.2, 2.35) {知识检索阶段};
 
-\node[proc] (doc) at (-5, 2) {原始文档};
-\node[proc] (clean) at (-5, 0.5) {文档预处理};
-\node[proc] (chunk) at (-5, -1) {智能切分};
-\node[proc] (embed) at (-5, -2.5) {向量嵌入};
-\node[proc] (store) at (-5, -4) {存入ChromaDB};
+\node[proc] (doc) at (-4.2, 1.35) {原始文档};
+\node[proc] (clean) at (-4.2, 0) {文档预处理};
+\node[proc] (chunk) at (-4.2, -1.35) {智能切分};
+\node[proc] (embed) at (-4.2, -2.7) {向量嵌入};
+\node[proc] (store) at (-4.2, -4.05) {存入ChromaDB};
 
 \draw[arrow] (doc) -- (clean);
 \draw[arrow] (clean) -- (chunk);
 \draw[arrow] (chunk) -- (embed);
 \draw[arrow] (embed) -- (store);
 
-\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (-5, 2.5) {知识库构建阶段};
+\node[data] (vdb) at (0, -1.35) {ChromaDB};
 
-\node[data] (vdb) at (0, -1) {ChromaDB};
-
-\node[proc] (query) at (5, 2) {用户查询};
-\node[proc] (qembed) at (5, 0.5) {查询向量化};
-\node[proc] (retrieve) at (5, -1) {向量检索};
-\node[proc] (rerank) at (5, -2.5) {相关性重排序};
-\node[data, fill=purple!15] (result) at (5, -4) {检索结果};
+\node[proc] (query) at (4.2, 1.35) {用户查询};
+\node[proc] (qembed) at (4.2, 0) {查询向量化};
+\node[proc] (retrieve) at (4.2, -1.35) {向量检索};
+\node[proc] (rerank) at (4.2, -2.7) {相关性重排序};
+\node[data, fill=purple!15] (result) at (4.2, -4.05) {检索结果};
 
 \draw[arrow] (query) -- (qembed);
 \draw[arrow] (qembed) -- (retrieve);
 \draw[arrow] (retrieve) -- (rerank);
 \draw[arrow] (rerank) -- (result);
 
-\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (5, 2.5) {知识检索阶段};
+\draw[arrow, dashed] (-2.2, -1.35) -- (-1.1, -1.35);
+\draw[arrow, dashed] (1.1, -1.35) -- (2.2, -1.35);
 
-\draw[arrow, dashed] (-2.5, -1) -- (-1.5, -1);
-\draw[arrow, dashed] (1.5, -1) -- (2.5, -1);
+\node[text width=2.4cm, align=right, font=\songti\zihao{-6}] at (-6.5, -1.35) {切分策略：\\层级递归切分；\\保留元信息};
 
-\node[anchor=east, font=\songti\zihao{-5}] at (-6.5, -1) {切分策略:};
-\node[anchor=east, font=\songti\zihao{-5}] at (-6.5, -1.5) {层级递归切分};
-\node[anchor=east, font=\songti\zihao{-5}] at (-6.5, -2) {保留元信息};
-
-\node[proc, fill=green!15] (filter) at (0, -3) {元数据过滤};
+\node[proc, fill=green!12, text width=2.4cm, align=center, minimum height=1.1cm] (filter) at (0, -3.15) {元数据过滤\\[-0.12em]{\footnotesize （服务名/故障类型）}};
 \draw[arrow] (filter) -- (vdb);
-\node[anchor=north, font=\songti\zihao{-5}, color=green!60!black] at (0, -2.2) {服务名/故障类型};
 
 \end{tikzpicture}
 \caption{知识库构建与检索流程}
@@ -200,12 +182,15 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \centering
 \caption{日志处理示例}
 \label{tab:log-processing}
-\begin{tabular}{p{3cm}p{4cm}p{3cm}}
+\begin{tabular}{p{2.6cm}p{6.2cm}p{2cm}}
 \toprule
 原始日志量 & 处理后摘要 & 压缩比 \\
 \midrule
-5,234条 & 23条ERROR + 8条WARNING & 99.4\% \\
-错误类型：DB\_TIMEOUT(15)，OOM(5)，NULL\_PTR(3) & 时间集中于14:23-14:31 & — \\
+5,234条 &
+\begin{minipage}[t]{6cm}\raggedright
+23条ERROR + 8条WARNING；错误类型：DB\_TIMEOUT(15)，OOM(5)，NULL\_PTR(3)；时间集中于14:23--14:31
+\end{minipage}
+& 99.4\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -238,51 +223,47 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \centering
 \begin{tikzpicture}[
     >=stealth,
-    node distance=1cm,
     font=\songti\zihao{-5},
-    input/.style={draw, shape=ellipse, fill=gray!15, minimum width=2.5cm, align=center},
-    proc/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.9cm, align=center},
-    output/.style={draw, rounded corners, fill=green!15, minimum width=3.5cm, minimum height=1.2cm, align=center},
+    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.4cm, minimum height=0.7cm, align=center},
+    proc/.style={draw, rounded corners, fill=blue!12, minimum width=2.8cm, minimum height=0.85cm, align=center},
+    output/.style={draw, rounded corners, fill=green!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
     arrow/.style={->, thick}
 ]
+% 分组标题置于椭圆上方，避免与输入节点文字重叠
+\node[font=\songti\zihao{-5}, color=blue!70!black] at (-4, 2.55) {日志处理};
+\node[font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.55) {指标处理};
+\node[font=\songti\zihao{-5}, color=purple!70!black] at (4, 2.55) {知识输入};
 
-\node[input] (logs) at (-4, 2) {原始日志};
-\node[input] (metrics) at (0, 2) {监控指标};
-\node[input] (knowledge) at (4, 2) {检索知识};
+\node[input] (logs) at (-4, 1.65) {原始日志};
+\node[input] (metrics) at (0, 1.65) {监控指标};
+\node[input] (knowledge) at (4, 1.65) {检索知识};
 
-\node[proc] (filter) at (-4, 0) {日志过滤};
-\node[proc] (classify) at (-4, -1.5) {日志分类};
-\node[proc] (summary) at (-4, -3) {日志摘要};
+\node[proc] (filter) at (-4, 0.15) {日志过滤};
+\node[proc] (classify) at (-4, -1.2) {日志分类};
+\node[proc] (summary) at (-4, -2.55) {日志摘要};
 
 \draw[arrow] (logs) -- (filter);
 \draw[arrow] (filter) -- (classify);
 \draw[arrow] (classify) -- (summary);
 
-\node[proc, fill=orange!15] (detect) at (0, 0) {异常识别};
-\node[proc, fill=orange!15] (convert) at (0, -1.5) {文本转换};
-\node[proc, fill=orange!15] (analyze) at (0, -3) {关联分析};
+\node[proc, fill=orange!12] (detect) at (0, 0.15) {异常识别};
+\node[proc, fill=orange!12] (convert) at (0, -1.2) {文本转换};
+\node[proc, fill=orange!12] (analyze) at (0, -2.55) {关联分析};
 
 \draw[arrow] (metrics) -- (detect);
 \draw[arrow] (detect) -- (convert);
 \draw[arrow] (convert) -- (analyze);
 
-\node[proc, fill=purple!15] (severity) at (4, -1.5) {严重程度评估};
+\node[proc, fill=purple!12, text width=3.2cm, align=center] (severity) at (0, -3.45) {严重程度评估};
 
-\node[output] (context) at (0, -5.5) {AnalysisContext};
+\node[output] (context) at (0, -4.85) {AnalysisContext};
 
-\draw[arrow] (summary) -- (severity);
-\draw[arrow] (analyze) -- (severity);
-\draw[arrow] (knowledge) -- (severity);
+\draw[arrow] (summary.east) -- (-1.1,-2.55) -- (-1.1,-3.45) -- (severity.west);
+\draw[arrow] (analyze.south) -- (severity.north);
+\draw[arrow] (knowledge.south) -- (4,-2.25) -- (1,-2.25) -- (1,-3.45) -- (severity.east);
 \draw[arrow] (severity) -- (context);
 
-\node[anchor=north, font=\songti\zihao{-5}, color=blue] at (-4, 2.5) {日志处理};
-\node[anchor=north, font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.5) {指标处理};
-\node[anchor=north, font=\songti\zihao{-5}, color=purple!70!black] at (4, 2.5) {评估};
-
-\node[anchor=west, font=\songti\zihao{-5}] at (6, -3) {评估因素:};
-\node[anchor=west, font=\songti\zihao{-5}] at (6, -3.5) {异常指标数量};
-\node[anchor=west, font=\songti\zihao{-5}] at (6, -4) {错误日志密度};
-\node[anchor=west, font=\songti\zihao{-5}] at (6, -4.5) {指标偏离程度};
+\node[text width=3.2cm, align=left, font=\songti\zihao{-6}] at (5.6, -1.1) {评估因素：异常指标数量；错误日志密度；指标偏离程度};
 
 \end{tikzpicture}
 \caption{证据融合器工作流程}
@@ -388,45 +369,37 @@ RCA推理的完整流程如图~\ref{fig:rca-engine-flow}所示。
 \centering
 \begin{tikzpicture}[
     >=stealth,
-    node distance=1.2cm,
     font=\songti\zihao{-5},
-    input/.style={draw, shape=ellipse, fill=gray!15, minimum width=2.5cm, align=center},
-    proc/.style={draw, rounded corners, fill=blue!15, minimum width=3.2cm, minimum height=1cm, align=center},
-    output/.style={draw, rounded corners, fill=green!15, minimum width=3cm, minimum height=1cm, align=center},
-    dia/.style={draw, shape=diamond, fill=yellow!15, minimum width=1.5cm, align=center},
+    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.8cm, minimum height=0.75cm, align=center},
+    proc/.style={draw, rounded corners, fill=blue!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
+    output/.style={draw, rounded corners, fill=green!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
+    dia/.style={draw, shape=diamond, aspect=2, fill=yellow!15, minimum width=2.2cm, minimum height=1.1cm, align=center},
     arrow/.style={->, thick}
 ]
 
-\node[input] (context) at (0, 3) {AnalysisContext};
+\node[input] (context) at (0, 3.1) {AnalysisContext};
 
-\node[proc] (prompt) at (0, 1.5) {构建结构化Prompt};
+\node[proc] (prompt) at (0, 1.85) {构建结构化Prompt};
 
-\node[proc, fill=purple!15] (llm) at (0, 0) {调用LLM API};
+\node[proc, fill=purple!12] (llm) at (0, 0.55) {调用LLM API};
 
-\node[dia] (parse) at (0, -1.8) {解析成功?};
+\node[dia] (parse) at (0, -1.05) {解析成功?};
 
-\node[output] (success) at (0, -3.5) {结构化诊断结果};
+\node[output] (success) at (0, -2.85) {结构化诊断结果};
 
-\node[proc, fill=orange!15] (fallback) at (4, -1.8) {后备规则分析};
+\node[proc, fill=orange!12, text width=2.6cm, align=center] (fallback) at (4.2, -1.05) {后备规则分析\\[-0.1em]{\footnotesize （规则映射）}};
 
-\node[output] (result) at (0, -5.5) {诊断结果输出};
+\node[output] (result) at (0, -4.5) {诊断结果输出};
 
 \draw[arrow] (context) -- (prompt);
 \draw[arrow] (prompt) -- (llm);
 \draw[arrow] (llm) -- (parse);
-\draw[arrow] (parse) -- node[anchor=east] {是} (success);
-\draw[arrow] (parse) -- node[anchor=south] {否} (fallback);
+\draw[arrow] (parse) -- node[pos=0.42, left, inner sep=1pt] {是} node[pos=0.58, right, inner sep=1pt, font=\footnotesize, text=green!60!black] {JSON解析} (success);
+\draw[arrow] (parse) -- node[midway, above] {否} (fallback);
 \draw[arrow] (success) -- (result);
 \draw[arrow] (fallback) |- (result);
 
-\node[anchor=south, font=\songti\zihao{-5}, color=green!60!black] at (0, -3) {JSON格式解析};
-\node[anchor=south, font=\songti\zihao{-5}, color=orange!70!black] at (4, -1.3) {规则映射};
-
-\node[anchor=east, font=\songti\zihao{-5}] at (-4, 1.5) {Prompt包含:};
-\node[anchor=east, font=\songti\zihao{-5}] at (-4, 1) {角色设定};
-\node[anchor=east, font=\songti\zihao{-5}] at (-4, 0.5) {上下文规范};
-\node[anchor=east, font=\songti\zihao{-5}] at (-4, 0) {推理步骤约束};
-\node[anchor=east, font=\songti\zihao{-5}] at (-4, -0.5) {输出格式要求};
+\node[text width=2.6cm, align=right, font=\songti\zihao{-6}] at (-3.5, 0.9) {Prompt包含：角色设定；上下文规范；推理步骤约束；输出格式要求};
 
 \end{tikzpicture}
 \caption{RCA推理引擎工作流程}
