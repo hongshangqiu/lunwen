@@ -1,22 +1,22 @@
-\chapter{系统设计与方法实现}
+\chapter{方法设计与原型实现}
 
-围绕"基于大模型的软件运维方法"这一研究主题，本文设计并实现了一个面向软件运维场景的智能故障诊断原型系统——LLM-Ops Copilot。本章首先阐述系统的设计目标与技术路线，随后依次介绍领域知识库构建、证据融合方法、RCA推理引擎和原型系统实现，详细说明各模块的设计思路与实现细节。
+为解决大语言模型在软件运维故障诊断中面临的领域知识不足、异构数据难组织和推理结果不稳定等问题，本文从知识增强、多源上下文构建和结构化推理三个方面进行方法设计，并通过原型系统实现和实验进行验证。本章首先阐述方法设计目标与技术路线，随后依次介绍知识检索方法、证据融合机制、RCA推理框架和原型实现，详细说明各模块的设计思路与实现细节。
 
-\section{系统设计目标}
+\section{方法设计目标}
 
-本文原型系统的设计目标包括以下四个方面。
+本文方法的设计目标包括以下四个方面。
 
-第一，知识增强能力。构建面向运维领域的知识库，通过检索增强生成机制为模型提供标准操作流程、历史故障案例等背景信息，提升回答的专业性。知识库需要具备语义检索能力，能够根据问题上下文精准召回相关文档，有效弥补通用大模型在特定领域知识上的不足~\cite{zhang2024rag4itops}。
+第一，\textbf{知识增强目标}：针对通用大模型缺乏特定系统领域知识的问题，构建面向运维场景的知识库，通过检索增强机制为模型提供标准操作流程、历史故障案例等背景信息~\cite{zhang2024rag4itops}。知识库需要具备语义检索能力，能够根据问题上下文精准召回相关文档，有效弥补模型在特定领域知识上的不足。
 
-第二，多源数据组织能力。将日志、监控指标和告警等异构数据统一组织为适合大模型分析的上下文。不同数据源的格式、语义和时效性各不相同，如何设计有效的数据融合策略是多源数据处理的关键~\cite{ji2024superlog,pham2024rcacausal}。
+第二，\textbf{多源上下文构建目标}：针对日志、监控指标等数据源异构且难以直接用于推理的问题，设计多源证据融合方法，将异构数据统一组织为结构化分析上下文。不同数据源的格式、语义和时效性各不相同，如何设计有效的数据融合策略是多源数据处理的关键~\cite{ji2024superlog,pham2024rcacausal}。
 
-第三，故障诊断能力。通过结构化提示引导大语言模型完成故障摘要生成、原因推断与修复建议输出。诊断过程需要可解释，每个结论都应基于明确的证据支撑~\cite{roy2024agents,liu2023logprompt}。
+第三，\textbf{诊断推理目标}：针对根因分析任务中自由生成结果不稳定、可解释性不足的问题，设计基于结构化Prompt的推理方法，引导模型完成故障摘要生成、原因推断与修复建议输出。诊断过程需要可解释，每个结论都应基于明确的证据支撑~\cite{roy2024agents,liu2023logprompt}。
 
-第四，自然语言交互能力。基于ChatOps理念提供对话式交互界面，降低运维人员的使用门槛。用户能够以自然语言描述问题，系统返回结构化的诊断结果~\cite{liu2024agentsurvey}。
+第四，\textbf{验证目标}：通过原型系统实现和对照实验，量化各模块对诊断效果的贡献，证明方法在典型故障场景下的有效性。
 
-\section{系统总体架构}
+\section{方法总体架构}
 
-LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:system-architecture}所示。
+本文方法采用三层核心架构设计，整体架构如图~\ref{fig:system-architecture}所示。
 
 \begin{figure}[htbp]
 \centering
@@ -32,9 +32,9 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \node[box, fill=red!15, draw=red!60, minimum width=7.6cm] (ui) at (0, 4) {Streamlit Web界面};
 \node[box, fill=green!15, draw=green!60, minimum width=7.6cm] (api) at (0, 2.78) {FastAPI API};
 
-\node[box, col, fill=white, draw=orange!60] (knowledge) at (-\col, 1.12) {知识检索};
-\node[box, col, fill=white, draw=orange!60] (evidence) at (0, 1.12) {证据融合};
-\node[box, col, fill=white, draw=orange!60] (rca) at (\col, 1.12) {RCA引擎};
+\node[box, col, fill=white, draw=orange!60] (knowledge) at (-\col, 1.12) {知识检索层};
+\node[box, col, fill=white, draw=orange!60] (evidence) at (0, 1.12) {证据融合层};
+\node[box, col, fill=white, draw=orange!60] (rca) at (\col, 1.12) {RCA推理层};
 \node[box, fill=orange!20, draw=orange!60, dashed, minimum width=1.65cm, minimum height=0.74cm, anchor=west] (llmapi) at ([xshift=0.55cm]rca.east) {LLM API};
 
 \node[box, fill=gray!12, draw=gray!70, minimum width=1.55cm] (srcLog) at (-\col, -0.62) {日志};
@@ -65,11 +65,11 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (evidence.south) -- (mysql.north);
 \draw[arrow] (evidence.south) -- (fs.north);
 \end{tikzpicture}
-\caption{LLM-Ops Copilot系统总体架构}
+\caption{本文方法总体架构}
 \label{fig:system-architecture}
 \end{figure}
 
-系统由四个核心层次构成，从上到下依次为用户交互层、服务接口层、核心逻辑层和数据存储层。
+在本文架构中，原型系统仅作为方法验证载体，真正的研究核心在于知识检索、证据融合与RCA推理三个关键模块。系统由四个层次构成：
 
 （1）\textbf{用户交互层}：基于Streamlit框架构建，提供友好的Web界面。用户可以通过自然语言向系统描述故障现象，系统以结构化形式返回诊断结果，包括故障摘要、根因分析、修复建议和置信度评分。
 
@@ -79,21 +79,23 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 （4）\textbf{数据存储层}：包括ChromaDB向量数据库（存储运维知识）、MySQL关系数据库（存储用户对话历史）和文件系统（存储日志和指标数据）。
 
-\section{运维知识库构建}
+\section{面向运维文档的知识检索方法}
 
-本文构建的运维知识库是系统的核心组件之一，其质量直接影响RAG效果的发挥~\cite{zhang2024rag4itops}。知识库的构建旨在解决通用大模型缺乏特定系统领域知识的问题，使系统能够针对用户提出的诊断性问题，检索出与当前场景相关的背景知识和历史经验，为后续推理提供依据。
+运维知识库的质量直接影响知识检索效果~\cite{zhang2024rag4itops}。本文提出一种面向运维文档结构的知识切分与检索方法，解决通用大模型缺乏特定系统领域知识的问题，使系统能够针对用户提出的诊断性问题，检索出与当前场景相关的背景知识和历史经验，为后续推理提供依据。
+
+本文的知识检索方法与常规RAG的主要差异在于：（1）采用面向运维文档结构的层级切分策略而非固定长度切分；（2）引入服务名和故障类型元数据过滤约束；（3）检索结果作为证据而非直接作答，服务于后续RCA推理。
 
 \subsection{知识库内容体系}
 
 知识库涵盖以下四类文档：
 
-\textbf{SOP文档}：标准操作流程文档，包含CPU故障、内存故障、数据库故障、网络故障等常见场景的标准排查步骤和修复方案~\cite{zhang2024rag4itops}。每份SOP文档遵循统一的模板结构，包括故障现象、可能原因、排查步骤、修复方案和预防措施，便于系统进行结构化检索。
+\textbf{SOP文档}：标准操作流程文档，包含CPU故障、内存故障、数据库故障、网络故障等常见场景的标准排查步骤和修复方案，适合支撑标准化排障步骤召回~\cite{zhang2024rag4itops}。
 
-\textbf{历史故障案例}：记录真实发生的故障事件及其处理过程~\cite{roy2024agents}。案例文档包括故障背景、现象描述、诊断过程、根因定位和经验总结，为类似故障的诊断提供参考。
+\textbf{历史故障案例}：记录真实发生的故障事件及其处理过程，适合支撑相似场景类比~\cite{roy2024agents}。
 
-\textbf{系统架构文档}：描述系统各组件的功能、依赖关系和部署方式~\cite{pham2024rcacausal}。当故障涉及多个服务时，架构文档有助于理解服务间的调用链路和故障传播路径。
+\textbf{系统架构文档}：描述系统各组件的功能、依赖关系和部署方式，适合支撑依赖关系理解~\cite{pham2024rcacausal}。
 
-\textbf{告警响应手册}：定义各类告警的响应策略和处理优先级~\cite{chen2025aiops}。手册根据告警类型和严重程度提供相应的处理建议。
+\textbf{告警响应手册}：定义各类告警的响应策略和处理优先级，适合支撑优先级判断和响应建议~\cite{survey2025aiopsfailure}。
 
 \subsection{知识向量化处理}
 
@@ -101,7 +103,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 \textbf{文档预处理}：对原始文档进行格式清理，去除HTML标签、特殊符号和冗余空白。对于Markdown格式的文档，解析其层级结构以保留标题和段落的语义关系。
 
-\textbf{智能切分策略}：采用层级递归切分算法~\cite{jain2025ragjourney}，按文档层级结构进行递归切分。对于SOP文档，以"步骤"为最小切分单元；对于案例文档，以"诊断阶段"为切分边界。切分时保留每个片段的元信息（文档类型、服务名、故障类型等），便于后续的元数据过滤检索~\cite{zhang2024rag4itops}。
+\textbf{面向运维文档结构的层级切分策略}：采用层级递归切分算法，按文档层级结构进行递归切分。对于SOP文档，以"步骤"为最小切分单元；对于案例文档，以"诊断阶段"为切分边界。与固定长度切分相比，基于Markdown层级的切分方式能够更好保留SOP步骤与案例阶段的语义完整性~\cite{zhang2024rag4itops}。切分时保留每个片段的元信息（文档类型、服务名、故障类型等），便于后续的元数据过滤检索。
 
 \textbf{向量嵌入表示}：使用sentence-transformers预训练模型（all-MiniLM-L6-v2）将文本片段转换为384维语义向量~\cite{zhang2024rag4itops}。该模型在语义相似度任务上表现优异，且推理效率较高，适合实时检索场景。嵌入时将元数据一并编码，支持在检索时按服务类型、故障类型等维度进行过滤。
 
@@ -125,7 +127,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 \node[proc] (doc) at (-\cx, 1.28) {原始文档};
 \node[proc] (clean) at (-\cx, 0.38) {文档预处理};
-\node[proc] (chunk) at (-\cx, -0.52) {智能切分};
+\node[proc] (chunk) at (-\cx, -0.52) {层级切分};
 \node[proc] (embed) at (-\cx, -1.42) {向量嵌入};
 \node[proc] (store) at (-\cx, -2.32) {存入ChromaDB};
 
@@ -134,11 +136,12 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 \draw[arrow] (chunk) -- (embed);
 \draw[arrow] (embed) -- (store);
 
-\node[anchor=east, text width=2.75cm, align=right, font=\songti\zihao{-6}, inner sep=2pt] at (-\cx-1.2, -0.52) {切分策略：层级递归切分；保留元信息};
+\node[anchor=east, text width=2.75cm, align=right, font=\songti\zihao{-6}, inner sep=2pt] at (-\cx-1.2, -0.52) {保留元信息};
+\node[anchor=west, text width=2.75cm, align=left, font=\songti\zihao{-6}, inner sep=2pt] at (-\cx+1.2, -0.52) {（服务名/故障类型）};
 
 \node[data] (vdb) at (0, -1.42) {ChromaDB};
 
-\node[proc, minimum height=1.05cm, inner sep=2pt] (retrieve) at (\cx, -1.42) {向量检索\\[-0.15em]{\zihao{-6}（元数据过滤：服务名/故障类型）}};
+\node[proc, minimum height=1.05cm, inner sep=2pt] (retrieve) at (\cx, -1.42) {向量检索\\[-0.15em]{\zihao{-6}（元数据过滤）}};
 \node[proc] (query) at (\cx, 1.28) {用户查询};
 \node[proc] (qembed) at (\cx, 0.38) {查询向量化};
 \node[proc] (rerank) at (\cx, -2.32) {相关性重排序};
@@ -159,17 +162,25 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 \subsection{语义检索策略}
 
-知识检索时，系统采用混合检索策略以平衡召回率和精确度~\cite{jain2025ragjourney}：
+知识检索时，系统采用混合检索策略以平衡召回率和精确度~\cite{jiang2023active}：
 
-\textbf{语义向量检索}：根据用户问题生成查询向量，在向量数据库中执行余弦相似度搜索~\cite{jiang2023active}。该方法能够捕捉问题与文档的语义相似性，即使问题表述与文档用词不同也能命中。
+\textbf{语义向量检索}：根据用户问题生成查询向量，在向量数据库中执行余弦相似度搜索。该方法能够捕捉问题与文档的语义相似性，即使问题表述与文档用词不同也能命中。
 
-\textbf{关键词过滤}：在向量检索结果基础上，应用元数据过滤~\cite{zhang2024rag4itops}。根据问题中提及的服务名称和故障类型，过滤掉不相关的检索结果，确保返回的知识片段与当前故障场景高度相关。
+\textbf{元数据过滤约束}：在向量检索结果基础上，根据问题中提及的服务名称和故障类型进行过滤~\cite{zhang2024rag4itops}。运维场景中同一类故障在不同服务上差异较大，仅靠语义相似度容易召回无关知识，因此引入服务名和故障类型约束以提高召回相关性。
 
-\textbf{相关性重排序}：对初步检索结果进行相关性评分~\cite{jain2025ragjourney}。综合考虑向量相似度、关键词匹配度和时效性等因素，对结果进行加权排序，优先返回最相关的Top-K知识片段。
+\textbf{相关性重排序}：对初步检索结果进行相关性评分，综合考虑向量相似度、关键词匹配度和时效性等因素，对结果进行加权排序，优先返回最相关的Top-K知识片段。
 
-\section{多源数据融合方法}
+本文的知识检索并不是一个独立问答模块，而是作为RCA推理前的知识增强步骤，为故障分析提供受场景约束的背景证据。
 
-在故障诊断场景中，单一数据源往往难以支撑高质量分析~\cite{pham2024rcacausal}。本文设计了证据融合器（EvidenceBuilder）模块，将知识检索结果、日志摘要和监控指标描述统一组织为结构化的分析上下文，为后续的根因分析提供完整的信息基础。
+\subsection{知识检索的独立贡献分析}
+
+为验证知识检索模块对诊断效果的独立贡献，本文设计了RAG-Only基线实验（详见第四章）。实验结果表明，仅使用知识检索增强即可将诊断准确率从35\%提升至48\%，说明领域知识对诊断专业性具有显著提升作用。此外，消融实验（详见第四章）进一步表明，知识检索模块主要提升的是诊断结果的专业性，而非单纯的语言流畅性。
+
+\section{面向RCA的多源证据融合方法}
+
+在故障诊断场景中，单一数据源通常难以完整反映系统状态。仅依赖日志容易缺失趋势信息，仅依赖指标又难以定位具体事件。针对这一问题，本文提出面向RCA的证据融合方法，将知识检索结果、日志摘要与异常指标统一组织为结构化分析上下文，为后续根因推理提供证据基础。
+
+日志处理的目标不是保留全部原始内容，而是尽可能在压缩上下文长度的同时保留对根因分析最关键的错误模式与时间线信息。将数值指标转换为自然语言描述的目的，是降低大语言模型直接理解原始时序数值的难度，提升其对异常趋势的语义感知能力。
 
 \subsection{日志数据处理}
 
@@ -220,7 +231,7 @@ LLM-Ops Copilot系统采用前后端分离架构，整体架构如图~\ref{fig:s
 
 （3）\textbf{指标偏离程度}：异常指标相对于阈值的偏离程度~\cite{zhang2024rag4itops}。例如，CPU使用率达99\%比达91\%更为严重。
 
-严重程度分为四级：INFO（正常）、WARNING（注意）、CRITICAL（严重）、PENDING（紧急）。评估结果作为元信息传递给RCA引擎，帮助模型判断故障的紧迫程度，以便优先处理紧急故障。
+严重程度分为四级：LOW（低）、MEDIUM（中）、HIGH（高）、CRITICAL（严重）。评估结果作为元信息传递给RCA引擎，帮助模型判断故障的紧迫程度，以便优先处理紧急故障。
 
 证据融合的完整流程如图~\ref{fig:evidence-builder-flow}所示。
 
@@ -293,38 +304,29 @@ $log\_summary$ $\gets$ GenerateLogSummary($error\_logs$) \;
 $anomalies$ $\gets$ DetectAnomalies($metrics$, $thresholds$) \;
 $anomaly\_descriptions$ $\gets$ ConvertToText($anomalies$) \;
 $severity$ $\gets$ AssessSeverity($anomalies$, $error\_logs$) \;
-$context$ $\gets$ AnalysisContext(...) \;
+$context$ $\gets$ AnalysisContext($log\_summary$, $anomaly\_descriptions$, $knowledge\_results$, $severity$) \;
 \Return{$context$}
 \end{algorithm}
 
-\section{基于大模型的根因分析引擎}
+证据融合实验结果表明（详见第四章），引入实时数据融合后，准确率从48\%提升至63\%，说明证据融合对复杂故障分析尤为关键。
 
-根因分析（RCA）是本文方法的重点任务~\cite{roy2024agents}。本文设计并实现了RCA推理引擎（RCAEngine），通过结构化Prompt引导大语言模型完成故障分析。
+\section{基于结构化Prompt的根因分析推理框架}
 
-\subsection{结构化Prompt设计}
+为提升根因分析输出的一致性、证据约束性和可解析性，本文设计结构化Prompt推理框架，引导大语言模型按预定义的分析步骤完成RCA推理。
 
-本文设计的RCA Prompt包含四个核心组成部分~\cite{liu2023prompt,liu2023logprompt}：
+\subsection{结构化Prompt设计原则}
 
-\textbf{第一部分：角色设定与行为约束}。定义模型为资深SRE（网站可靠性工程师），明确其分析原则~\cite{liu2023prompt}：
+为解决自由生成结果不稳定、证据与结论脱节、输出格式不统一等问题，本文归纳出结构化Prompt设计的三条核心原则：
 
-\begin{itemize}
-\item 证据驱动原则：所有结论必须基于提供的证据，禁止主观臆测；
-\item 结构化输出原则：严格按JSON格式返回，便于后续解析；
-\item 置信度评估原则：每个根因假设需给出置信度（0-1之间的浮点数）；
-\item 诚实透明原则：当证据不足时，明确说明数据缺口，不强行给出结论。
-\end{itemize}
+\textbf{证据驱动原则}：所有结论必须基于提供的证据，禁止主观臆测。通过要求模型在输出根因前先列出支撑证据和反对证据，确保推理过程有据可依。
 
-\textbf{第二部分：上下文输入规范}。将证据融合器输出的分析上下文结构化地组织为Prompt~\cite{zhang2024rag4itops}：
+\textbf{分步推理原则}：引导模型按照规范的逻辑框架展开分析，而非直接输出结论。通过强制要求模型先进行现象总结、证据分析，再进行根因假设和修复建议，确保推理过程透明可追溯。
 
-\begin{itemize}
-\item 故障背景：服务名称、故障发生时间、问题概述；
-\item 异常指标：各指标的测量值、阈值和偏离程度；
-\item 日志摘要：关键错误类型、出现频次和时间分布；
-\item 检索知识：Top-3相关的SOP文档和历史案例；
-\item 严重程度：故障的综合评估等级。
-\end{itemize}
+\textbf{结构化输出原则}：要求模型按JSON Schema格式输出，便于后续解析和结果比较。标准化输出格式使得不同场景下的诊断结果可以横向对比，也便于评估指标的计算。
 
-\textbf{第三部分：推理步骤约束}。引导模型按照规范的逻辑框架展开分析~\cite{liu2023logprompt,roy2024agents}：
+本文设计的RCA Prompt包含以下组成部分~\cite{liu2023prompt,liu2023logprompt}：
+
+\textbf{角色设定与行为约束}。定义模型为资深SRE（网站可靠性工程师），明确其分析原则。通过角色设定与行为约束，将模型输出限制在运维故障分析场景内。
 
 （1）\textbf{现象总结}——简洁描述当前异常表现，包括受影响的指标和服务；
 
@@ -336,7 +338,7 @@ $context$ $\gets$ AnalysisContext(...) \;
 
 （5）\textbf{数据缺口}——识别现有证据中的不足，提出需要补充的信息。
 
-\textbf{第四部分：输出格式约束}。要求模型按以下JSON Schema输出~\cite{liu2023logprompt}：
+\textbf{输出格式约束}。要求模型按JSON Schema格式输出，便于后续解析和结果比较~\cite{liu2023logprompt}：
 
 \begin{verbatim}
 {
@@ -360,7 +362,7 @@ $context$ $\gets$ AnalysisContext(...) \;
 
 \subsection{后备规则分析机制}
 
-RCA引擎设计了后备规则分析机制以提高系统的鲁棒性~\cite{zhang2024rag4itops}。当大模型调用失败（如超时、API不可用或JSON解析错误）时，系统自动切换到基于规则的简单分析：
+大语言模型在运维场景中仍可能调用失败或输出异常，为保证方法完整性，本文引入规则后备分析机制。该后备机制的目的不是替代大语言模型推理，而是在模型不可用或输出异常时保证方法流程的可用性与实验结果的完整性~\cite{zhang2024rag4itops}。
 
 规则映射表定义了常见指标异常与可能根因的对应关系~\cite{zhang2024rag4itops}：
 
@@ -441,33 +443,11 @@ $P$ $\gets$ $\text{构建提示词}(C)$ \;
 
 \section{原型系统实现}
 
-原型系统采用Python语言开发，技术栈包括Streamlit、FastAPI、ChromaDB和OpenAI API~\cite{zhang2024rag4itops}。
+原型系统的实现目标并非追求完整产品化，而是为知识检索、证据融合和RCA推理三个模块提供统一验证环境。原型系统采用Python语言开发，技术栈包括Streamlit、FastAPI、ChromaDB和OpenAI API~\cite{zhang2024rag4itops}。
 
-\subsection{前端实现}
+原型系统提供四个人机交互入口：（1）故障诊断界面：用户输入故障描述，系统返回结构化诊断结果；（2）知识查询界面：用户可直接查询运维知识库；（3）监控展示界面：展示实时监控指标和告警信息；（4）实验评估界面：支持批量运行测试场景，查看评估指标和对比结果。
 
-前端基于Streamlit框架构建~\cite{zhang2024rag4itops}，提供四个人机交互入口：
-
-（1）\textbf{故障诊断界面}：用户输入故障描述，系统返回结构化诊断结果。支持Markdown格式的结果展示，包括根因分析、置信度评分和修复建议~\cite{liu2023logprompt}。
-
-（2）\textbf{知识查询界面}：用户可直接查询运维知识库，查看SOP文档和历史故障案例~\cite{zhang2024rag4itops}。
-
-（3）\textbf{监控展示界面}：展示实时监控指标和告警信息~\cite{pham2024rcacausal}。
-
-（4）\textbf{实验评估界面}：支持批量运行测试场景，查看评估指标和对比结果。
-
-前端界面采用卡片式布局，核心诊断结果以结构化卡片形式呈现，便于用户快速获取关键信息。
-
-\subsection{后端实现}
-
-后端基于FastAPI框架实现~\cite{zhang2024rag4itops}，主要模块包括：
-
-（1）\textbf{诊断服务}（/api/diagnose）：接收故障描述，协调知识检索、证据融合和RCA推理，返回诊断结果~\cite{roy2024agents}。
-
-（2）\textbf{知识检索服务}（/api/knowledge/search）：封装向量检索逻辑，支持按服务名、故障类型等维度过滤~\cite{zhang2024rag4itops}。
-
-（3）\textbf{实验评估服务}（/api/experiment）：支持批量运行预设测试场景，计算评估指标~\cite{liu2023logprompt}。
-
-后端采用异步IO模型，能够高效处理并发请求~\cite{zhang2024rag4itops}。与ChromaDB的连接采用连接池管理，与OpenAI API的交互采用流式响应，支持打字机效果的实时输出~\cite{liu2023logprompt}。
+后端主要模块包括：（1）诊断服务：接收故障描述，协调知识检索、证据融合和RCA推理，返回诊断结果；（2）知识检索服务：封装向量检索逻辑，支持按服务名、故障类型等维度过滤；（3）实验评估服务：支持批量运行预设测试场景，计算评估指标。
 
 端到端的诊断Pipeline执行流程为：接收用户问题后，首先调用知识检索服务获取相关文档；然后调用日志和指标服务获取实时故障信息；接着通过证据融合器将多源信息统一组织为分析上下文；最后调用RCA推理引擎生成诊断结果~\cite{zhang2024rag4itops,roy2024agents}。
 
@@ -519,8 +499,8 @@ $P$ $\gets$ $\text{构建提示词}(C)$ \;
 
 \section{本章小结}
 
-本章详细介绍了LLM-Ops Copilot原型系统的设计与实现。首先明确了系统的四个设计目标：知识增强能力、多源数据组织能力、故障诊断能力和自然语言交互能力。随后从四个层次介绍了系统的总体架构设计，包括用户交互层、服务接口层、核心逻辑层和数据存储层。
+本章详细介绍了本文方法的设计与原型实现。首先明确了方法的四个设计目标：知识增强目标、多源上下文构建目标、诊断推理目标和验证目标。随后从三个层次介绍了方法的总体架构设计，包括知识检索层、证据融合层和RCA推理层。
 
-在核心模块设计上，本文构建了面向运维领域的知识库，利用检索增强生成技术获取领域知识背景~\cite{zhang2024rag4itops}；设计了证据融合器将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。最后介绍了原型系统的具体实现，包括前端界面和后端服务的实现细节。
+在核心模块设计上，本文提出了面向运维文档结构的知识检索方法，利用检索增强技术获取领域知识背景~\cite{zhang2024rag4itops}；设计了面向RCA的多源证据融合方法，将日志摘要、监控指标和知识检索结果统一组织为结构化上下文~\cite{pham2024rcacausal}；通过结构化Prompt引导大语言模型按照"证据分析—根因假设—验证计划—修复建议"的逻辑顺序展开诊断分析~\cite{liu2023logprompt,roy2024agents}。最后介绍了原型系统的实现，作为方法验证的载体。
 
 原型系统在技术层面验证了上述方法在运维故障诊断任务中的可行性，也为后续实验评估奠定了实现基础。
