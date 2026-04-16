@@ -15,14 +15,14 @@
     scale=0.9,
     transform shape,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.82cm, align=center},
+    box/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.82cm, align=center, inner sep=3pt},
     arrow/.style={->, thick}
 ]
 
 \node[box, fill=gray!12, minimum width=7.4cm] (input) at (0, 3.3) {受控场景输入：问题描述、日志、监控指标、运维文档};
-\node[box, fill=orange!12, minimum width=2.9cm] (evidence) at (-3.2, 1.7) {数据输入层\\日志与监控数据协同组织};
-\node[box, fill=blue!12, minimum width=2.8cm] (knowledge) at (0, 1.7) {能力增强层\\知识增强（RAG）};
-\node[box, fill=green!12, minimum width=2.8cm] (reasoning) at (3.2, 1.7) {能力增强层\\结构化推理};
+\node[box, fill=orange!12, minimum width=2.7cm] (evidence) at (-3.6, 1.7) {数据输入层\\日志与监控数据\\协同组织};
+\node[box, fill=blue!12, minimum width=2.7cm] (knowledge) at (0, 1.7) {能力增强层\\知识增强（RAG）};
+\node[box, fill=green!12, minimum width=2.7cm] (reasoning) at (3.6, 1.7) {能力增强层\\结构化推理};
 \node[box, fill=purple!12, minimum width=7.4cm] (engine) at (0, 0.0) {大语言模型诊断引擎：数据理解、知识调用、根因推断与建议生成};
 \node[box, fill=red!12, minimum width=7.2cm] (output) at (0, -1.7) {结构化诊断结果：故障摘要、根因假设、关键诊断信息、验证步骤、修复建议};
 \node[box, fill=yellow!12, minimum width=7.2cm] (eval) at (0, -3.4) {实验评估：Top-1准确率、Top-3覆盖率、关键诊断信息命中率、输出规范率、响应时间};
