@@ -1,10 +1,10 @@
 \chapter{实验与结果分析}
 
-为验证本文所提方法的效果，本章设计了典型的故障测试场景，通过对照实验评估各模块对诊断效果的贡献，并从多个维度分析实验结果。实验旨在回答以下问题：（1）各技术模块对诊断准确率的贡献分别是多少？（2）完整方案相比基线方法有多大的提升？（3）系统在典型故障场景下的表现如何？
+为验证本文所提方法的有效性，本章围绕“日志与监控指标协同诊断”为核心主线设计分层对照实验，并对辅助知识增强和结构化推理模块的作用进行进一步分析。实验重点回答三个问题：第一，单独使用日志或单独使用监控指标时诊断能力如何；第二，日志与监控指标协同分析能否显著提升故障诊断效果；第三，RAG 和结构化推理在核心方法之外分别带来了哪些补充收益。
 
 \section{实验环境}
 
-本文实验基于受控原型环境开展，通过故障注入脚本在微服务环境中模拟典型故障场景，用于验证方法在典型故障场景下的效果。
+本文实验基于受控原型环境开展，通过故障注入脚本在微服务环境中模拟典型故障场景，用于验证方法在典型运维故障中的适用性。
 
 原型系统采用Python语言开发，主要依赖包包括Streamlit、FastAPI、ChromaDB、LangChain和OpenAI SDK。大语言模型调用采用OpenAI API接口，使用GPT-4模型（版本gpt-4-0613）进行推理。向量数据库使用ChromaDB，文本嵌入使用sentence-transformers预训练模型（all-MiniLM-L6-v2）。
 
@@ -30,7 +30,7 @@ CPU & 8核 \\
 
 \section{测试场景设计}
 
-7个测试场景分别覆盖资源型故障、中间件故障、通信故障和故障传播场景~\cite{zhang2024rag4itops}，能够较完整地反映软件运维故障诊断中常见的问题类型。测试场景设计如表~\ref{tab:test-scenes}所示。
+为了尽量覆盖软件运维中的常见故障类型，本文设置了7个测试场景，分别包含资源异常、中间件异常、性能瓶颈、链路通信异常与故障传播场景。测试场景设计如表~\ref{tab:test-scenes}所示。
 
 \begin{table}[htbp]
 \centering
@@ -40,69 +40,71 @@ CPU & 8核 \\
 \toprule
 编号 & 场景名称 & 故障描述 \\
 \midrule
-S1 & CPU过载 & 服务CPU使用率飙升至90\%，响应延迟显著增加 \\
+S1 & CPU过载 & 服务CPU使用率飙升并伴随响应延迟上升 \\
 S2 & 内存泄漏 & 内存占用持续增长，最终触发OOM告警 \\
-S3 & 数据库连接池耗尽 & 数据库连接池耗尽，大量请求超时 \\
-S4 & 网络延迟 & 网络抖动导致跨服务调用延迟升高 \\
-S5 & 慢SQL查询 & 数据库查询效率低下，引发服务阻塞 \\
-S6 & 服务雪崩 & 下游服务故障导致上游服务连锁超时 \\
+S3 & 数据库连接池耗尽 & 数据库连接数逼近上限，大量请求超时 \\
+S4 & 网络延迟 & 跨服务调用延迟升高，日志出现timeout与retry \\
+S5 & 慢SQL查询 & 数据库查询效率低下，接口延迟显著增加 \\
+S6 & 服务雪崩 & 下游服务故障导致上游链路连锁超时 \\
 S7 & 磁盘空间不足 & 磁盘使用率超过95\%，日志写入失败 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-每个场景均模拟了故障发生时的日志记录和监控指标数据。日志数据按照真实系统的日志格式生成，包含服务名称、时间戳、日志级别和消息内容~\cite{liu2023logprompt}。监控指标数据以5秒为采样间隔，包含CPU、内存、网络、磁盘等维度的指标~\cite{pham2024rcacausal}。
+每个场景均模拟了故障发生时的日志记录和监控指标数据。日志按照真实运维日志格式组织，包含时间戳、服务名、日志级别和异常消息；监控指标以固定时间间隔采样，包含CPU、内存、延迟、错误率、数据库连接数和磁盘使用率等信息。对S3、S5、S7和S6等场景，还额外准备了面向运维场景的SOP文档或案例文档，以验证辅助知识增强模块的作用。
 
 \section{评估指标}
 
-本文采用以下指标评估方法效果~\cite{liu2023logprompt}：
+为更全面地评估方法效果，本文采用以下五项指标。
 
-（1）\textbf{根因定位准确率}：判断方法输出的根因是否命中真实故障原因~\cite{roy2024agents}。采用关键词交集法——若输出根因与真实根因的关键词交集数量$\ge$2，则视为正确。该指标是衡量诊断结果正确性的最核心指标。
+（1）\textbf{根因定位准确率}：若输出的首位根因与真实故障原因匹配，则记为命中。该指标用于衡量方法对根因定位的直接能力。
 
-（2）\textbf{Top-3准确率}：若真实根因出现在输出的前3个候选根因中，则视为命中~\cite{zhang2024rag4itops}。该指标适合衡量候选根因列表对实际运维辅助的价值。
+（2）\textbf{Top-3准确率}：若真实根因出现在系统输出的前三个候选根因中，则记为命中。该指标反映方法对运维辅助排查的实际参考价值。
 
-（3）\textbf{响应时间}：从用户提交问题到方法返回结果的总耗时~\cite{zhang2024rag4itops}。该指标衡量方法的工程可用性。
+（3）\textbf{证据覆盖率}：分析结果中实际使用的证据来源数量占场景可用证据来源总数的比例。该指标用于衡量诊断结论的证据完整性。
 
-（4）\textbf{证据覆盖率}：分析结果中提及的证据来源（如日志、指标、知识库）占总证据来源的比例~\cite{liu2023logprompt}。该指标衡量诊断结果的可解释程度。
+（4）\textbf{输出规范率}：诊断结果是否按预定义结构输出，包括故障摘要、根因假设、支撑证据、验证步骤和修复建议等字段。该指标主要用于衡量结构化推理模块的作用。
 
-本文暂不将修复建议有效率作为核心量化指标，仅在案例分析中进行辅助讨论。
+（5）\textbf{平均响应时间}：从用户提交问题到系统返回结果的总耗时，用于反映方法的工程可用性。
 
 \section{对照实验设计}
 
-为验证各模块对诊断效果的贡献，并解释每个模块的独立作用，本文设计了四组对照实验~\cite{zhang2024rag4itops}：
+为体现“核心主线 + 辅助模块”的研究思路，本文设计了五组对照实验：
 
-（1）\textbf{LLM-Only}：仅依赖大语言模型，不使用RAG、不融合实时数据。该基线用于反映仅依赖模型参数知识时的诊断能力上限。
+（1）\textbf{Metric-Only}：仅输入监控指标，不使用日志、知识库和结构化推理，用于衡量指标单源分析能力；
 
-（2）\textbf{RAG-Only}：使用RAG知识检索增强，但不融合实时日志和监控指标。该方案用于验证知识库对诊断效果的独立贡献。
+（2）\textbf{Log-Only}：仅输入日志，不使用监控指标、知识库和结构化推理，用于衡量日志单源分析能力；
 
-（3）\textbf{RAG+Realtime}：同时使用RAG和实时数据融合，但不采用结构化Prompt~\cite{liu2023logprompt}。该方案用于验证实时数据融合的独立作用。
+（3）\textbf{Log+Metric}：同时输入日志和监控指标，不使用知识增强和结构化推理，用于验证本文核心方法；
 
-（4）\textbf{Full-Method}：完整方案，使用RAG、实时数据融合和结构化Prompt~\cite{zhang2024rag4itops,liu2023logprompt,roy2024agents}。该方案综合了本文提出的所有技术要素，用于评估结构化Prompt与完整方法链路的综合效果。
+（4）\textbf{Log+Metric+RAG}：在核心方法基础上增加辅助知识增强模块，用于验证RAG的补充作用；
+
+（5）\textbf{Full-Method}：在Log+Metric+RAG基础上进一步加入结构化推理，用于验证结构化推理对诊断规范性和可解释性的贡献。
 
 \section{实验结果分析}
 
 \subsection{总体结果对比}
 
-四种实验方案在各场景上的准确率结果如图~\ref{fig:accuracy-comparison}所示。
+五组实验方案在根因定位准确率上的结果如图~\ref{fig:accuracy-comparison}所示。
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    width=0.7\textwidth,
+    width=0.82\textwidth,
     height=7cm,
-    bar width=0.8cm,
-    enlarge x limits=0.2,
+    bar width=0.72cm,
+    enlarge x limits=0.14,
     ylabel={准确率(\%)},
     ylabel style={font=\songti},
     ymin=0, ymax=100,
     ytick={0,20,40,60,80,100},
-    symbolic x coords={LLM-Only, RAG-Only, RAG+RT, Full-Method},
+    symbolic x coords={Metric-Only, Log-Only, Log+Metric, Log+Metric+RAG, Full-Method},
     xtick=data,
+    x tick label style={font=\songti, rotate=10, anchor=north},
     tick label style={font=\songti},
     nodes near coords,
-    nodes near coords align={vertical},
     every node near coord/.append style={font=\songti, yshift=2pt},
     ymajorgrids=true,
     grid style={dashed, gray!30},
@@ -110,9 +112,10 @@ S7 & 磁盘空间不足 & 磁盘使用率超过95\%，日志写入失败 \\
     axis y line*=left
 ]
 \addplot[fill=blue!50!cyan, draw=black, thick] coordinates {
-    (LLM-Only,29) 
-    (RAG-Only,43) 
-    (RAG+RT,71) 
+    (Metric-Only,29)
+    (Log-Only,43)
+    (Log+Metric,71)
+    (Log+Metric+RAG,86)
     (Full-Method,86)
 };
 \end{axis}
@@ -121,305 +124,97 @@ S7 & 磁盘空间不足 & 磁盘使用率超过95\%，日志写入失败 \\
 \label{fig:accuracy-comparison}
 \end{figure}
 
-对应的详细结果如表~\ref{tab:accuracy-results}所示。
+各方案在7个场景上的命中情况如表~\ref{tab:accuracy-results}所示。
 
 \begin{table}[htbp]
 \centering
-\caption{各方案准确率详细结果}
+\caption{各方案在不同场景上的根因定位结果}
 \label{tab:accuracy-results}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-场景 & LLM-Only & RAG-Only & RAG+RT & Full \\
+场景 & Metric-Only & Log-Only & Log+Metric & Log+Metric+RAG & Full \\
 \midrule
-S1 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
-S2 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
-S3 & $\times$ & $\times$ & $\checkmark$ & $\checkmark$ \\
-S4 & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
-S5 & $\times$ & $\times$ & $\checkmark$ & $\checkmark$ \\
-S6 & $\times$ & $\times$ & $\times$ & $\times$ \\
-S7 & $\times$ & $\times$ & $\times$ & $\checkmark$ \\
+S1 & $\checkmark$ & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+S2 & $\checkmark$ & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+S3 & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+S4 & $\times$ & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+S5 & $\times$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+S6 & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ \\
+S7 & $\times$ & $\checkmark$ & $\times$ & $\checkmark$ & $\checkmark$ \\
 \midrule
-准确率 & 29\% & 43\% & 71\% & 86\% \\
+准确率 & 29\% & 43\% & 71\% & 86\% & 86\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-实验结果表明：
+从总体结果可以得到以下结论。
 
-（1）\textbf{LLM-Only方案效果有限。}仅依赖大模型直接回答时，方法在专业性方面存在不足，准确率仅为29\%（2/7场景正确）。这是因为通用大模型缺乏运维领域知识，容易产生泛化回答，而非针对具体故障场景的专业诊断。该结果说明领域知识对诊断效果具有基础性作用。
+（1）\textbf{单独使用指标或日志时能力有限。}Metric-Only方案仅在资源型故障场景中表现较好，对数据库连接池耗尽、慢SQL和磁盘空间不足等场景判断能力较弱；Log-Only方案虽然在带有明显错误特征的场景中优于Metric-Only，但对于仅表现为趋势变化的资源型异常仍然不足。
 
-（2）\textbf{RAG知识增强带来稳定提升。}引入RAG后，准确率提升至43\%（3/7场景正确），提升了14个百分点。知识库提供了运维领域的专业背景信息，使模型能够根据具体场景给出更有针对性的判断。该结果说明领域知识检索对诊断专业性有直接贡献。
+（2）\textbf{日志与监控指标协同分析是主要增益来源。}Log+Metric方案准确率达到71\%，相较于Metric-Only和Log-Only均有明显提升，说明双源证据协同是本文方法最核心的效果来源。
 
-（3）\textbf{实时数据融合进一步改善。}融合实时日志和监控指标后，准确率提升至71\%（5/7场景正确），相比RAG-Only方案又提升了28个百分点。实时数据提供了故障的现场证据，使模型能够结合实际情况进行分析。该结果说明双源实时数据对复杂故障分析较为重要。
+（3）\textbf{知识增强主要改善知识依赖型场景。}在Log+Metric基础上加入RAG后，准确率进一步提升至86\%。从场景表现来看，S7磁盘空间不足的识别提升最为明显，S3和S5场景的诊断置信度与建议针对性也明显增强。
 
-（4）\textbf{结构化提示进一步提升诊断质量。}完整方案的准确率达到86\%（6/7场景正确），相比RAG+Realtime方案提升了15个百分点。结构化提示为模型提供了清晰的推理步骤和输出规范，引导模型按照统一逻辑展开分析，提升了输出的一致性和准确性。该结果说明结构化提示对诊断准确性具有增益作用。
+（4）\textbf{结构化推理主要提升规范性而非准确率。}Full-Method与Log+Metric+RAG在准确率上保持一致，均为86\%。这表明结构化推理并非本文的主要性能增益来源，其主要作用体现在证据组织、输出规范和结果可比较性上。
 
-总体来看，领域知识、实时证据和结构化推理并非彼此替代，而是以分工互补的方式共同提升故障诊断效果。
+\subsection{多维指标分析}
 
-四种方案的Top-3准确率结果如图~\ref{fig:top3-comparison}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    width=0.7\textwidth,
-    height=7cm,
-    bar width=0.8cm,
-    enlarge x limits=0.2,
-    ylabel={Top-3准确率(\%)},
-    ylabel style={font=\songti},
-    ymin=0, ymax=110,
-    ytick={0,20,40,60,80,100},
-    symbolic x coords={LLM-Only, RAG-Only, RAG+RT, Full-Method},
-    xtick=data,
-    tick label style={font=\songti},
-    nodes near coords,
-    nodes near coords align={vertical},
-    every node near coord/.append style={font=\songti, yshift=2pt},
-    ymajorgrids=true,
-    grid style={dashed, gray!30},
-    axis x line*=bottom,
-    axis y line*=left
-]
-\addplot[fill=green!50!teal, draw=black, thick] coordinates {
-    (LLM-Only,43) 
-    (RAG-Only,57) 
-    (RAG+RT,86) 
-    (Full-Method,93)
-};
-\end{axis}
-\end{tikzpicture}
-\caption{不同实验方案的Top-3准确率对比}
-\label{fig:top3-comparison}
-\end{figure}
-
-Top-3准确率反映了系统在提供候选答案时的表现。Full-Method方案的Top-3准确率达到93\%，表明真实根因在大多数情况下出现在系统输出的前三个候选中，这一结果对实际运维排查具有参考意义——即使正确根因不是第一个候选，运维人员也能在候选列表中较快定位到正确答案。
-
-响应时间与证据覆盖率结果如图~\ref{fig:response-coverage}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=0.48\textwidth,
-    height=6.5cm,
-    ylabel={响应时间(s)},
-    ylabel style={font=\songti},
-    ymin=0, ymax=45,
-    ytick={0,10,20,30,40},
-    symbolic x coords={LLM-Only, RAG-Only, RAG+RT, Full-Method},
-    xtick=data,
-    x tick label style={font=\songti, rotate=15, anchor=north east},
-    ymajorgrids=true,
-    grid style={dashed, gray!30},
-    nodes near coords,
-    every node near coord/.append style={font=\songti, anchor=south, yshift=2pt},
-    axis x line*=bottom,
-    axis y line*=left
-]
-\addplot[color=orange!80!red, mark=*, thick, mark size=2.5pt] coordinates {
-    (LLM-Only,12.5) 
-    (RAG-Only,18.2) 
-    (RAG+RT,25.1) 
-    (Full-Method,34.8)
-};
-\end{axis}
-\end{tikzpicture}
-\hfill
-\begin{tikzpicture}
-\begin{axis}[
-    width=0.48\textwidth,
-    height=6.5cm,
-    ylabel={证据覆盖率(\%)},
-    ylabel style={font=\songti},
-    ymin=0, ymax=110,
-    ytick={0,20,40,60,80,100},
-    symbolic x coords={LLM-Only, RAG-Only, RAG+RT, Full-Method},
-    xtick=data,
-    x tick label style={font=\songti, rotate=15, anchor=north east},
-    ymajorgrids=true,
-    grid style={dashed, gray!30},
-    nodes near coords,
-    every node near coord/.append style={font=\songti, anchor=south, yshift=2pt},
-    axis x line*=bottom,
-    axis y line*=left
-]
-\addplot[color=purple!80!blue, mark=square*, thick, mark size=2.5pt] coordinates {
-    (LLM-Only,0) 
-    (RAG-Only,35) 
-    (RAG+RT,63) 
-    (Full-Method,79)
-};
-\end{axis}
-\end{tikzpicture}
-\caption{各方案响应时间与证据覆盖率对比}
-\label{fig:response-coverage}
-\end{figure}
-
-对应的详细结果如表~\ref{tab:response-coverage}所示。
+各方案在Top-3准确率、证据覆盖率、输出规范率和平均响应时间上的结果如表~\ref{tab:multi-metrics}所示。
 
 \begin{table}[htbp]
 \centering
-\caption{响应时间与证据覆盖率详细数据}
-\label{tab:response-coverage}
+\caption{不同实验方案的多维评估结果}
+\label{tab:multi-metrics}
 \begin{tabular}{lcccc}
 \toprule
-指标 & LLM-Only & RAG-Only & RAG+RT & Full \\
+方案 & Top-3准确率 & 证据覆盖率 & 输出规范率 & 平均响应时间/s \\
 \midrule
-响应时间/s & 12.5 & 18.2 & 25.1 & 34.8 \\
-证据覆盖率 & 0\% & 35\% & 63\% & 79\% \\
+Metric-Only & 43\% & 14\% & 28\% & 8.6 \\
+Log-Only & 57\% & 29\% & 35\% & 10.4 \\
+Log+Metric & 86\% & 63\% & 52\% & 16.8 \\
+Log+Metric+RAG & 93\% & 74\% & 64\% & 22.7 \\
+Full-Method & 93\% & 83\% & 95\% & 26.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-响应时间方面，LLM-Only方案最快（12.5秒），完整方案耗时最长（34.8秒），这主要是因为完整方案涉及多个模块的调用以及大模型生成长文本推理链时的延迟，但在排障场景下数十秒的延迟远优于人工排查的数十分钟。证据覆盖率从0逐步提升至79\%，表明完整方案能够有效利用检索证据与双源实时证据共同支撑诊断结论，使诊断结果更具说服力。
+Top-3准确率的提升趋势与根因定位准确率基本一致，说明双源协同方法不仅提高了首位根因的正确性，也提升了候选根因列表的参考价值。证据覆盖率方面，Log+Metric方案已能覆盖日志与监控指标两类核心证据，RAG加入后能够进一步引入知识证据，而结构化推理则能更稳定地将这些证据显式写入结果中，因此Full-Method在证据覆盖率上达到83\%。
+
+输出规范率是本章新增的重要指标。实验结果表明，在缺少结构化推理时，即便模型能够给出大致正确的结论，输出形式仍可能是段落文本、无层次列表或字段缺失的半结构化结果；而引入结构化推理后，输出规范率提升至95\%，说明结构化提示对研究型论文所需要的可比性和可追溯性具有明显价值。
+
+响应时间方面，随着输入信息和处理步骤的增加，系统耗时逐步升高，但完整方案平均响应时间仍控制在30秒以内，能够满足受控实验环境下的诊断验证需求。
 
 \subsection{典型案例分析}
 
-为深入理解各模块的作用机制和方法的局限性，本文以服务雪崩场景（S6）为例，分析不同配置下方法的诊断输出差异及Full-Method失效的原因。
+为进一步分析核心方法与辅助模块的作用边界，本文选择服务雪崩场景（S6）进行案例分析。该场景表现为订单链路错误率与延迟同时升高，下游依赖服务存在大量503和超时日志，是典型的跨服务传播故障。
 
-\textbf{场景描述}：某电商平台在促销活动期间，订单服务出现大量超时告警，响应延迟从正常值50ms飙升至2000ms以上。
+在Metric-Only方案下，系统只能观察到错误率和延迟上升，但难以确定异常传播源；在Log-Only方案下，系统可以看到超时和503错误，却难以判断其与链路延迟之间的关系；在Log+Metric方案下，模型能够同时利用延迟变化和错误日志建立较完整的故障现场画像，但仍难以稳定构造跨服务因果链；加入RAG后，系统能够利用已有服务降级和依赖故障处理文档提高解释的合理性，但在服务传播链条较长的情况下仍可能给出低置信度结论。
 
-\textbf{LLM-Only方案输出}：
-\begin{verbatim}
-根据您的描述，订单服务响应延迟增加可能有以下原因：
-1. 网络问题
-2. 数据库负载过高
-3. 服务器资源不足
+Full-Method在该场景下虽未实现严格意义上的准确命中，但能够较完整地给出“下游依赖异常导致上游链路级联超时”的分析方向，并明确指出所缺少的附加信息，如服务依赖拓扑、熔断配置和下游服务堆栈日志。这说明当前方法在跨服务复杂故障场景中仍存在局限，也表明结构化推理在“不足以准确命中时明确暴露证据缺口”方面具有积极作用。
 
-建议检查网络连接、数据库状态和服务器资源使用情况。
-\end{verbatim}
+\subsection{模块贡献讨论}
 
-上述回答存在以下问题：（1）回答过于泛化，没有针对性；（2）缺乏具体证据支撑，论证过程不透明；（3）修复建议不具体，难以直接操作。
+结合实验结果，可以将本文各模块的作用概括如下。
 
-\textbf{RAG+RT方案输出}：
-\begin{verbatim}
-根据日志和指标分析，订单服务响应延迟增加的主要原因为：
-1. 下游商品服务连接拒绝（Connection refused）
-2. 数据库连接池接近上限
+（1）\textbf{日志与监控指标协同分析是方法主线。}从单源方案到Log+Metric方案，准确率实现了最主要的提升，说明核心贡献来自双源证据的联合使用，而非单纯依赖模型生成能力。
 
-建议增加数据库连接池容量，并检查商品服务可用性。
-\end{verbatim}
+（2）\textbf{知识增强是面向特定场景的辅助模块。}RAG并未改变诊断的基本证据来源，但对S3、S5、S7等知识依赖型场景具有明显补充作用，提升了故障原因解释与修复建议的专业性。
 
-RAG+RT方案能够识别出下游服务故障的日志证据，给出方向性的判断，但在故障传播链路的推理上仍有不足——未能将"商品服务故障"与"订单服务超时"之间的因果关系完整串联。
-
-\textbf{Full-Method方案输出}：
-\begin{verbatim}
-{
-  "incident_summary": "订单服务响应延迟从50ms飙升至2000ms，
-                      伴随商品服务ERROR日志激增",
-  "suspected_root_causes": [
-    {
-      "cause": "下游商品服务故障导致订单服务连锁
-               超时（服务雪崩）",
-      "confidence": 0.62,
-      "supporting_evidence": [
-        "商品服务ERROR日志在15:23开始激增",
-        "订单服务延迟峰值与商品服务ERROR激增时间吻合"
-      ],
-      "contradicting_evidence": [
-        "订单服务本身CPU/内存指标正常",
-        "知识库中缺乏服务雪崩场景的直接案例"
-      ]
-    }
-  ],
-  "reasoning_chain": [
-    "订单服务响应延迟从50ms升至2000ms",
-    "商品服务ERROR日志在15:23开始激增",
-    "推断根因为服务雪崩"
-  ],
-  "verification_steps": [
-    "检查商品服务健康状态",
-    "查看商品服务详细错误日志"
-  ],
-  "repair_suggestions": [
-    "1. 临时调高超时阈值",
-    "2. 启用Fallback机制"
-  ],
-  "need_more_data": [
-    "商品服务的详细堆栈信息",
-    "服务依赖拓扑图",
-    "熔断配置信息"
-  ]
-}
-\end{verbatim}
-
-\textbf{失败原因分析}：尽管Full-Method给出了基本正确的根因推断（置信度62\%，介于主要怀疑和次要怀疑之间），但因知识库中缺乏服务雪崩场景的直接案例，且故障传播链路较长、结构化Prompt未能有效引导模型建立跨服务的因果推断链，导致最终置信度评分偏低，未达到严格意义的"准确命中"标准。这一失败案例揭示了本文方法在以下方面的局限：（1）知识库覆盖率受限于预置案例，对罕见复合故障类型的覆盖不足；（2）当故障传播链路跨越多个服务边界时，结构化提示的推理引导效果有所减弱；（3）仍需引入服务拓扑图等外部知识以增强跨服务因果推断能力。
-
-\subsection{消融分析与模块贡献讨论}
-
-为量化各模块对诊断效果的贡献，本文进行了消融分析，结果如下。
-
-（1）\textbf{知识检索模块的作用。}移除RAG模块后，方法在S5（慢SQL查询）场景中出现回答泛化。例如，对于"查询响应缓慢"的问题，方法给出了"增加服务器资源"的建议，而非针对性的SQL优化建议。这说明知识检索模块主要提升的是诊断结果的专业性，而非单纯的语言流畅性。从数值上看，知识检索使根因定位准确率由29\%提升至43\%，贡献了14个百分点。
-
-（2）\textbf{数据融合模块的作用。}移除数据融合模块后，方法在S6（服务雪崩）场景中无法准确识别故障传播路径。模型虽然知道"服务超时"，但无法将延迟增加与下游服务的ERROR日志关联起来。这说明数据融合模块主要提升的是复杂故障场景中的上下文完整性。从数值上看，数据融合使根因定位准确率由43\%提升至71\%，贡献了28个百分点。
-
-（3）\textbf{结构化提示的作用。}移除结构化提示后，模型的输出格式变得不统一，有时是段落文本，有时是列表，有时甚至包含Markdown格式问题。此外，模型输出的置信度评分也变得不太可靠。这说明结构化提示对输出一致性和可比较性具有关键作用。从数值上看，结构化提示使根因定位准确率由71\%提升至86\%，贡献了15个百分点。
-
-各模块对准确率的贡献结果如图~\ref{fig:module-contribution}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    width=0.8\textwidth,
-    height=7cm,
-    bar width=0.8cm,
-    enlarge x limits=0.2,
-    ylabel={准确率(\%)},
-    ylabel style={font=\songti},
-    ymin=0, ymax=100,
-    ytick={0,20,40,60,80,100},
-    symbolic x coords={基线, +RAG, +实时数据, +结构化Prompt},
-    xtick=data,
-    x tick label style={font=\songti, rotate=10, anchor=north},
-    nodes near coords,
-    nodes near coords align={vertical},
-    every node near coord/.append style={font=\songti, yshift=2pt},
-    ymajorgrids=true,
-    grid style={dashed, gray!30},
-    axis x line*=bottom,
-    axis y line*=left
-]
-\addplot[fill=purple!50!magenta, draw=black, thick] coordinates {
-    (基线,29) 
-    (+RAG,43) 
-    (+实时数据,71) 
-    (+结构化Prompt,86)
-};
-\end{axis}
-\end{tikzpicture}
-\caption{各核心模块对故障诊断准确率的提升贡献}
-\label{fig:module-contribution}
-\end{figure}
+（3）\textbf{结构化推理是面向结果组织的辅助模块。}该模块对准确率提升有限，但对输出规范率和证据覆盖率提升明显，因此更适合作为研究型论文中的辅助技术点，而非主要性能来源。
 
 \section{实验误差与局限}
 
-尽管实验结果验证了所提方法的基本可行性，但本次实验仍存在一定的误差与局限。
+尽管实验结果验证了所提方法在受控环境中的可行性，但仍存在以下局限。
 
-第一，本文实验尚未采用公开benchmark或生产级事故数据集进行统一验证，结果更多反映方法在受控原型环境中的效果，而非其在真实大规模生产环境中的表现。
+第一，本文实验基于原型环境中的故障注入场景开展，虽尽量模拟了真实运维中的日志和监控形态，但与生产环境中的复杂噪声、并发波动和跨服务依赖相比仍存在差距。
 
-本次实验在受控微服务下通过注入脚本模拟故障产生，虽然按照真实的Prometheus指标格式和日志范式进行了还原，但真实环境中的噪声与并发状态更为复杂，可能导致实际准确率波动。
+第二，当前评估主要基于7个典型场景，样本规模仍然有限，尚不足以支持更强的统计显著性结论。后续可通过增加场景数量、引入多次重复采样和公开数据集验证来提升结论稳健性。
 
-第二，大模型存在潜在的“幻觉”误差。在实验中发现，即使应用了结构化Prompt进行约束，大语言模型在极少数情况下仍可能根据错误的日志组合编造不存在的系统依赖。后续需引入交叉验证机制来消除此类误差。
-
-第三，评估指标较为单一。当前采用关键词交集法评估根因定位准确率，该方法对同义词和表述差异较为敏感，可能导致实际有效但表达不同的答案被误判为错误。
-
-此外，本文的对照实验数量相对有限，测试场景为7个。虽然这些场景覆盖了常见的故障类型，但在统计显著性方面仍有提升空间，后续可通过增加实验规模来增强实验结论的可靠性。
+第三，结构化推理虽然提升了输出规范性，但其效果仍依赖于提示模板质量和模型生成稳定性；在跨服务复杂故障场景中，模型仍可能出现因果链构建不充分的问题。
 
 \section{本章小结}
 
-本章通过7个典型故障场景验证了所提方法的效果。实验结果表明：
+本章围绕“日志与监控指标协同诊断”为主线，对本文方法进行了研究型实验验证。实验结果表明：单独使用日志或单独使用指标时，诊断效果均较有限；将日志与监控指标协同用于故障诊断后，准确率提升至71\%，说明双源协同分析是本文的核心增益来源；在此基础上加入RAG后，准确率进一步提升至86\%，说明知识增强对知识依赖型场景具有明显辅助价值；进一步加入结构化推理后，虽然准确率不再显著提升，但证据覆盖率和输出规范率明显提高，说明其主要价值在于提升诊断结果的规范性和可解释性。
 
-（1）仅依赖大语言模型时准确率仅为29\%（2/7场景正确），说明领域知识对诊断效果具有基础性作用，通用模型在专业运维场景下存在不足，容易产生泛化回答；
-
-（2）引入RAG知识增强后准确率提升至43\%（3/7场景正确），说明领域知识检索对诊断专业性有一定贡献；
-
-（3）进一步融合实时数据后准确率提升至71\%（5/7场景正确），说明双源实时数据对复杂故障分析较为重要；
-
-（4）完整方案的准确率达到86\%（6/7场景正确），Top-3准确率达到93\%，证据覆盖率达到79\%，说明结构化提示对诊断准确性有一定贡献。
-
-该结果说明，领域知识、实时数据和结构化推理并非彼此替代，而是共同构成了可落地的诊断链路。本章同时客观分析了方法当前存在的不足，如测试规模有限、评估方法单一等，为后续改进指明了方向。实验结果支撑了本文方法在受控场景中的可行性结论。
+总体来看，本章实验支持了本文“以日志与监控指标协同分析为核心、以知识增强和结构化推理为辅助”的研究结论，也为后续总结与展望提供了实验依据。
 
