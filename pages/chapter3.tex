@@ -1,469 +1,159 @@
-\chapter{方法设计}
+\chapter{方法设计与研究验证原型}
 
-围绕软件运维中的故障诊断任务，本文将研究主线收敛为日志与监控指标的协同分析方法，并将知识检索与结构化推理作为两个辅助模块，用于分别补足领域知识背景和约束诊断输出。本章首先说明方法设计目标与总体架构，随后依次介绍辅助知识增强模块、核心双源协同分析模块、辅助结构化推理模块以及原型系统实现。
+本章围绕本文的三个研究问题展开方法设计。整体思路是将日志与监控指标协同分析作为主线方法，将知识增强和结构化推理作为两个辅助模块，并通过一个最小化的研究验证原型承载实验。与偏产品化的系统设计不同，本文更关注每个模块在诊断链路中的职责是否清楚、变量是否便于控制以及输出是否便于评估。
 
-为避免术语混用，本文统一约定如下：``方法''指完整技术方案，``模块''指可独立实现的功能单元，``框架''指用于组织推理流程的步骤结构。后文均按此口径表述。
+\section{设计目标与总体框架}
 
-\section{方法设计目标}
+本文方法的设计目标可概括为三个层次。
 
-本文方法的设计目标包括以下四个方面。
+第一，\textbf{核心诊断目标}：针对单一数据源难以稳定支撑根因定位的问题，构建日志与监控指标协同分析流程，以统一现场证据为后续诊断提供基础。
 
-第一，\textbf{核心诊断目标}：针对单一数据源难以支撑复杂故障定位的问题，设计日志与监控指标协同分析方法，通过时间窗对齐、TraceID关联、异常指标识别和日志摘要构建统一分析上下文，为根因定位提供现场证据。
+第二，\textbf{辅助增益目标}：针对知识依赖型故障场景，引入检索增强补充背景知识；针对输出格式不稳定问题，引入结构化推理提高结果可审查性。
 
-第二，\textbf{辅助知识增强目标}：针对数据库、慢SQL、磁盘空间不足等场景对运维经验依赖较强的问题，构建面向运维场景的知识库，并通过检索增强为核心诊断链路补充背景知识。
+第三，\textbf{验证目标}：通过统一原型环境和可重复的评分规则，验证核心方法与辅助模块的作用边界，而不是仅展示系统界面或功能数量。
 
-第三，\textbf{辅助推理控制目标}：针对根因分析任务中自由生成结果不规范、可追溯性不足的问题，设计基于结构化提示的推理方法，提高诊断结果的规范性、可解释性和可比较性。
-
-第四，\textbf{验证目标}：通过原型系统实现和分层对照实验，量化核心双源协同方法及两个辅助模块对诊断效果的贡献，验证方法在典型故障场景下的可行性。
-
-\section{方法总体架构}
-
-本文方法采用“核心主线 + 辅助模块”的整体架构设计，整体架构如图~\ref{fig:system-architecture}所示。
+基于上述目标，本文采用“核心主线 + 辅助模块”的总体框架，如图~\ref{fig:system-architecture}所示。
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
     >=stealth,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, minimum width=2.28cm, minimum height=0.82cm, align=center},
-    arrow/.style={->, thick},
-    col/.style={minimum width=2.28cm}
+    box/.style={draw, rounded corners, minimum width=2.35cm, minimum height=0.86cm, align=center},
+    arrow/.style={->, thick}
 ]
-% 以 x=0 为对称轴，三列等距；外部数据源用虚线框整体圈定
-\pgfmathsetmacro{\col}{3.05}
-\node[box, fill=red!15, draw=red!60, minimum width=7.6cm] (ui) at (0, 4) {Streamlit Web界面};
-\node[box, fill=green!15, draw=green!60, minimum width=7.6cm] (api) at (0, 2.78) {FastAPI API};
 
-\node[box, col, fill=white, draw=orange!60] (knowledge) at (-\col, 1.12) {知识检索层};
-\node[box, col, fill=white, draw=orange!60] (evidence) at (0, 1.12) {数据融合层};
-\node[box, col, fill=white, draw=orange!60] (rca) at (\col, 1.12) {推理分析层};
-\node[box, fill=orange!20, draw=orange!60, dashed, minimum width=1.65cm, minimum height=0.74cm, anchor=west] (llmapi) at ([xshift=0.55cm]rca.east) {LLM API};
+\node[box, fill=gray!12, minimum width=7.6cm] (input) at (0, 3.4) {受控场景输入：日志、监控指标、运维文档};
+\node[box, fill=blue!12, minimum width=2.6cm] (knowledge) at (-3.2, 1.8) {辅助模块\\知识检索};
+\node[box, fill=orange!12, minimum width=2.8cm] (fusion) at (0, 1.8) {核心模块\\双源证据融合};
+\node[box, fill=green!12, minimum width=2.6cm] (reasoning) at (3.2, 1.8) {辅助模块\\结构化推理};
+\node[box, fill=purple!12, minimum width=7.6cm] (context) at (0, 0.1) {统一分析上下文：问题、时间窗、日志摘要、指标摘要、检索知识、严重程度};
+\node[box, fill=red!12, minimum width=7.6cm] (output) at (0, -1.7) {结构化诊断结果：现象总结、根因假设、关键证据、验证步骤、修复建议};
+\node[box, fill=yellow!12, minimum width=7.6cm] (eval) at (0, -3.5) {实验评估：Top-1准确率、Top-3覆盖率、关键证据命中率、输出规范率、响应时间};
 
-\node[box, fill=gray!12, draw=gray!70, minimum width=1.55cm] (srcLog) at (-\col, -0.62) {日志};
-\node[box, fill=gray!12, draw=gray!70, minimum width=1.55cm] (srcMon) at (0, -0.62) {监控};
-\node[box, fill=gray!12, draw=gray!70, minimum width=1.55cm] (srcDoc) at (\col, -0.62) {文档};
+\draw[arrow] (input) -- (fusion);
+\draw[arrow] (input) -- (knowledge);
+\draw[arrow] (knowledge) -- (context);
+\draw[arrow] (fusion) -- (context);
+\draw[arrow] (context) -- (reasoning);
+\draw[arrow] (reasoning) -- (output);
+\draw[arrow] (output) -- (eval);
 
-\node[draw=gray!55, dashed, rounded corners, inner sep=7pt, fit=(srcLog)(srcMon)(srcDoc)] (extfit) {};
-\node[font=\songti\zihao{-5}, inner sep=1pt, anchor=south] at (extfit.north) {外部数据源};
-
-\node[box, col, fill=blue!12, draw=blue!60] (chroma) at (-\col, -2.38) {ChromaDB};
-\node[box, col, fill=blue!12, draw=blue!60] (mysql) at (0, -2.38) {MySQL};
-\node[box, col, fill=blue!12, draw=blue!60] (fs) at (\col, -2.38) {文件系统};
-
-\draw[arrow] (ui) -- (api);
-\draw[arrow] (api.south -| knowledge) -- (knowledge.north);
-\draw[arrow] (api.south -| evidence) -- (evidence.north);
-\draw[arrow] (api.south -| rca) -- (rca.north);
-
-\draw[arrow, dashed, orange!70!black] (rca.east) -- (llmapi.west);
-
-% 多源遥测进入数据融合；领域文档供知识检索侧召回
-\draw[->, dashed, gray] (srcLog.north) |- (evidence.south);
-\draw[->, dashed, gray] (srcMon.north) -- (evidence.south);
-\draw[->, dashed, gray] (srcDoc.north) -- (knowledge.south);
-
-% 存储：检索读向量库；融合读写日志/指标落文件系统；会话历史落 MySQL
-\draw[arrow] (knowledge.south) -- (chroma.north);
-\draw[arrow] (evidence.south) -- (mysql.north);
-\draw[arrow] (evidence.south) -- (fs.north);
 \end{tikzpicture}
-\caption{本文方法总体架构}
+\caption{本文方法总体框架}
 \label{fig:system-architecture}
 \end{figure}
 
-在本文架构中，原型系统作为方法验证载体，采用四层结构实现一个核心模块和两个辅助模块。三个方法模块的作用如下：
+在该框架中，知识检索和结构化推理都不直接替代核心诊断链路。知识检索只在需要时补充背景文档，结构化推理只负责约束输出过程；真正承担主要诊断信息组织任务的，是双源证据融合模块。
 
-（1）\textbf{知识检索模块}：通过向量检索从运维知识库中召回与当前故障场景相关的背景知识，为核心诊断链路提供领域先验。
+\section{日志与监控指标协同分析方法}
 
-（2）\textbf{数据融合模块}：将日志摘要、监控指标异常和检索知识统一组织为结构化分析上下文，是本文方法的核心模块。
+\subsection{日志处理策略}
 
-（3）\textbf{推理分析模块}：通过结构化提示引导大语言模型按照规范流程完成故障分析，对诊断结果进行组织和约束。
+日志处理的目标不是保留全部原始日志，而是在有限上下文内尽量保留与故障判断最相关的信息。结合日志分析研究中对模板稳定性和噪声控制的关注~\cite{du2017deeplog,zhang2019logrobust,liu2024logprompt}，本文将日志处理分为三个步骤。
 
-原型系统的四层结构为：
+\textbf{第一，时间窗过滤。}以故障发生时段为中心，提取前后固定时间窗内的日志。这样做的目的是缩小上下文范围，避免将过多无关日志输入后续模块。
 
-（1）\textbf{用户交互层}：基于Streamlit框架构建，提供友好的Web界面。用户可以通过自然语言向系统描述故障现象，系统以结构化形式返回诊断结果，包括故障摘要、根因分析、修复建议和置信度评分。
+\textbf{第二，请求链路关联。}对于能够识别TraceID或请求标识的样例，将同一请求链上的日志进行归并，以减轻分布式场景中“日志多而分散”的问题。若场景中缺少显式链路标识，则退化为按服务与时间顺序组织日志。
 
-（2）\textbf{服务接口层}：基于FastAPI框架实现RESTful API接口，包括诊断分析接口、知识检索接口、实验评估接口等。该层负责接收用户请求，协调下游服务并返回结果。
+\textbf{第三，错误摘要生成。}统计ERROR和WARNING级别日志，提取高频错误模式、关键报错语句和时间线特征，生成供模型直接理解的日志摘要文本。该摘要不追求复刻全部原始日志，而是强调故障定位所需的错误类型、发生顺序和上下文线索。
 
-（3）\textbf{核心逻辑层}：包含三个核心模块——知识检索模块、数据融合模块和推理分析模块。知识检索模块负责从向量数据库中召回相关文档；数据融合模块负责将双源实时数据统一组织为分析上下文；推理分析模块负责引导大语言模型完成故障分析。
+\subsection{监控指标处理策略}
 
-（4）\textbf{数据存储层}：包括ChromaDB向量数据库（存储运维知识）、MySQL关系数据库（存储用户对话历史）和文件系统（存储日志和指标数据）。
+监控指标处理的目标，是将原本偏数值和时序的数据转换为对诊断更友好的证据表达。具体包括以下三个步骤。
 
-\section{面向运维文档的知识检索方法}
+\textbf{第一，异常识别。}针对CPU使用率、内存使用率、磁盘占用率、请求延迟、错误率、数据库连接数等指标设置经验阈值，并结合变化趋势判断其是否异常。本文使用简单阈值与趋势结合的策略，而不引入复杂时序模型，主要考虑到本科论文的实验重点在于证据协同而不是单独的异常检测算法比较。
 
-运维知识库的质量直接影响知识检索效果。本文提出一种面向运维文档结构的知识切分与检索方法，解决通用大模型缺乏特定系统领域知识的问题，使系统能够针对用户提出的诊断性问题，检索出与当前场景相关的背景知识和历史经验，为后续推理提供依据。
+\textbf{第二，指标文本化。}将“95\%”“持续上升”“5分钟内增长60个百分点”等数值变化转写为自然语言描述，以降低模型直接处理原始序列的难度。例如，将“P95延迟由320ms升至1450ms”表达为“接口延迟在短时间内明显上升，已超过设定阈值”。
 
-本文的知识检索方法与常规RAG的主要差异在于：（1）采用面向运维文档结构的层级切分策略而非固定长度切分；（2）引入服务名和故障类型元数据过滤条件；（3）检索结果作为证据服务于后续分析。
+\textbf{第三，指标关联。}对不同指标间的共现关系进行简化归纳。例如，CPU升高伴随延迟上升更可能指向计算密集或资源竞争；连接数逼近上限且错误率增加更可能指向连接池耗尽或阻塞。这一步不直接给出根因，而是服务于后续上下文组织。
 
-\subsection{知识库内容体系}
+\subsection{统一分析上下文构建}
 
-知识库涵盖以下四类文档：
+在完成日志摘要和指标处理后，系统将双源证据组织为统一分析上下文。该上下文至少包含六项内容：用户问题、服务标识、时间范围、日志摘要、指标摘要和异常指标列表。当RAG模块返回知识片段时，知识结果以辅助字段附加在上下文中；严重程度评估则作为辅助元信息传递给推理模块。
 
-\textbf{SOP文档}：标准操作流程文档，包含CPU故障、内存故障、数据库故障、网络故障等常见场景的标准排查步骤和修复方案，适合支撑标准化排障步骤召回。
+统一分析上下文的作用有两点。第一，它为后续推理模块提供结构化、长度受控且来源清晰的证据集合。第二，它使不同实验组之间的输入差异保持可比，例如Metric-Only组只保留指标字段，Log-Only组只保留日志字段，Log+Metric组同时保留两类核心证据。
 
-\textbf{历史故障案例}：记录真实发生的故障事件及其处理过程，适合支撑相似场景类比。
-
-\textbf{系统架构文档}：描述系统各组件的功能、依赖关系和部署方式，适合支撑依赖关系理解。
-
-\textbf{告警响应手册}：定义各类告警的响应策略和处理优先级，适合支撑优先级判断和响应建议。
-
-\subsection{知识向量化处理}
-
-知识库构建过程包括以下关键技术环节：
-
-\textbf{文档预处理}：对原始文档进行格式清理，去除HTML标签、特殊符号和冗余空白。对于Markdown格式的文档，解析其层级结构以保留标题和段落的语义关系。
-
-\textbf{面向运维文档结构的层级切分策略}：采用层级递归切分算法，按文档层级结构进行递归切分。对于SOP文档，以"步骤"为最小切分单元；对于案例文档，以"诊断阶段"为切分边界。与固定长度切分相比，基于Markdown层级的切分方式能够更好保留SOP步骤与案例阶段的语义完整性。切分时保留每个片段的元信息（文档类型、服务名、故障类型等），便于后续的元数据过滤检索。
-
-\textbf{向量嵌入表示}：使用sentence-transformers预训练模型（all-MiniLM-L6-v2）将文本片段转换为384维语义向量。该模型在语义相似度任务上表现较好，且推理效率较高，适合实时检索场景。嵌入时将元数据一并编码，支持在检索时按服务类型、故障类型等维度进行过滤。
-
-\textbf{向量存储索引}：将向量与原始文本、元数据一同存入ChromaDB向量数据库。ChromaDB采用HNSW（Hierarchical Navigable Small World）索引算法，能够在保证检索精度的同时实现毫秒级的Top-K查询。
-
-知识检索方法的框架流程如图~\ref{fig:knowledge-base-flow}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    >=stealth,
-    font=\songti\zihao{-5},
-    proc/.style={draw, rounded corners, fill=blue!15, minimum width=2.75cm, minimum height=0.86cm, align=center},
-    data/.style={draw, ellipse, fill=green!15, minimum width=2.35cm, minimum height=0.78cm, align=center},
-    arrow/.style={->, thick}
-]
-% 三列关于 0 对称；构建链与检索链行高对齐；ChromaDB 仅由「写入」与「检索」虚线连接
-\pgfmathsetmacro{\cx}{3.55}
-\node[font=\songti\zihao{-5}, color=blue!70!black] (tleft) at (-\cx, 2.28) {知识库构建阶段};
-\node[font=\songti\zihao{-5}, color=blue!70!black] (tright) at (\cx, 2.28) {知识检索阶段};
-
-\node[proc] (doc) at (-\cx, 1.28) {原始文档};
-\node[proc] (clean) at (-\cx, 0.38) {文档预处理};
-\node[proc] (chunk) at (-\cx, -0.52) {层级切分};
-\node[proc] (embed) at (-\cx, -1.42) {向量嵌入};
-\node[proc] (store) at (-\cx, -2.32) {存入ChromaDB};
-
-\draw[arrow] (doc) -- (clean);
-\draw[arrow] (clean) -- (chunk);
-\draw[arrow] (chunk) -- (embed);
-\draw[arrow] (embed) -- (store);
-
-\node[anchor=east, text width=2.75cm, align=right, font=\songti\zihao{-6}, inner sep=2pt] at (-\cx-1.2, -0.52) {保留元信息};
-\node[anchor=west, text width=2.75cm, align=left, font=\songti\zihao{-6}, inner sep=2pt] at (-\cx+1.2, -0.52) {（服务名/故障类型）};
-
-\node[data] (vdb) at (0, -1.42) {ChromaDB};
-
-\node[proc, minimum height=1.05cm, inner sep=2pt] (retrieve) at (\cx, -1.42) {向量检索\\[-0.15em]{\zihao{-6}（元数据过滤）}};
-\node[proc] (query) at (\cx, 1.28) {用户查询};
-\node[proc] (qembed) at (\cx, 0.38) {查询向量化};
-\node[proc] (rerank) at (\cx, -2.32) {相关性重排序};
-\node[data, fill=purple!15, minimum width=2.75cm] (result) at (\cx, -3.22) {检索结果};
-
-\draw[arrow] (query) -- (qembed);
-\draw[arrow] (qembed) -- (retrieve);
-\draw[arrow] (retrieve) -- (rerank);
-\draw[arrow] (rerank) -- (result);
-
-\draw[arrow, dashed] (store.east) |- (vdb.west);
-\draw[arrow, dashed] (vdb.east) |- (retrieve.west);
-
-\end{tikzpicture}
-\caption{知识检索方法框架流程}
-\label{fig:knowledge-base-flow}
-\end{figure}
-
-\subsection{语义检索策略}
-
-知识检索时，系统采用混合检索策略以平衡召回率和精确度：
-
-\textbf{语义向量检索}：根据用户问题生成查询向量，在向量数据库中执行余弦相似度搜索。该方法能够捕捉问题与文档的语义相似性，即使问题表述与文档用词不同也能命中。
-
-\textbf{元数据过滤条件}：在向量检索结果基础上，根据问题中提及的服务名称和故障类型进行过滤。运维场景中同一类故障在不同服务上差异较大，仅靠语义相似度容易召回无关知识，因此引入服务名和故障类型过滤条件以提高召回相关性。
-
-\textbf{相关性重排序}：对初步检索结果进行相关性评分，综合考虑向量相似度、关键词匹配度等因素，对结果进行加权排序，优先返回最相关的Top-K知识片段。
-
-本文的知识检索作为分析前的知识增强步骤，为故障分析提供受场景筛选的背景证据。
-
-\subsection{知识检索的效果分析}
-
-为验证知识检索模块对核心诊断链路的辅助作用，本文在第四章设置了Log+Metric与Log+Metric+RAG两组对照。实验结果表明，引入知识检索后准确率由71\%提升至86\%，说明领域知识对知识依赖型场景具有明显增益。
-
-\section{双源证据融合方法}
-
-在故障诊断场景中，单一数据源通常难以完整反映系统状态。仅依赖日志容易缺失趋势信息，仅依赖指标又难以定位具体事件。针对这一问题，本文提出双源证据融合方法，将日志摘要与异常指标统一组织为结构化分析上下文，并在需要时接入检索模块输出作为辅助背景信息，为后续故障分析提供数据基础。
-
-该模块的设计思路是：先明确“单源证据不足”这一问题，再给出“时间窗+TraceID+异常指标”的融合方案，最后在第四章通过Metric-Only、Log-Only与Log+Metric的对照实验验证该核心方法带来的准确率提升。
-
-日志处理的目标不是保留全部原始内容，而是尽可能在压缩上下文长度的同时保留对故障分析最关键的错误模式与时间线信息。将数值指标转换为自然语言描述的目的，是降低大语言模型直接理解原始时序数值的难度。
-
-\subsection{日志数据处理}
-
-日志数据是故障诊断的重要依据，但原始日志具有体量大、噪声多的特点。本文设计了三级日志处理流水线，将海量的原始日志转化为结构化的摘要信息：
-
-\textbf{第一级：基于时间窗与TraceID的日志关联}。在分布式系统中，单一服务的日志不足以反映故障全貌。系统首先以故障发生时间为基准，提取滑动时间窗（如故障前后5分钟）内的日志。系统提取异常请求的链路追踪标识（TraceID），通过该TraceID将分散在不同微服务组件中的日志串联起来，形成统一的上下文，以排除同一时间段内无关请求的干扰。
-
-\textbf{第二级：日志分类}。将过滤后的日志按级别分类，重点关注ERROR和WARNING级别日志。通过正则表达式匹配常见错误模式（如Connection timeout、OutOfMemory、NullPointerException等），提取关键错误信息。
-
-\textbf{第三级：日志摘要}。对错误日志进行聚类和统计，生成结构化的日志摘要。摘要包含以下信息：（1）错误类型分布——统计各类错误的出现频次；（2）错误时间线——按时间顺序排列关键错误事件；（3）错误上下文——保留错误前后的关键日志行，便于理解错误发生的前因后果。
-
-日志处理的具体实例如表~\ref{tab:log-processing}所示。
+表~\ref{tab:analysis-context}给出了统一分析上下文的主要字段。
 
 \begin{table}[htbp]
 \centering
-\caption{日志处理示例}
-\label{tab:log-processing}
-\begin{tabular}{p{2.6cm}p{6.2cm}p{2cm}}
+\caption{统一分析上下文字段}
+\label{tab:analysis-context}
+\begin{tabular}{p{3.2cm}p{8.4cm}}
 \toprule
-原始日志量 & 处理后摘要 & 压缩比 \\
+字段 & 含义 \\
 \midrule
-5,234条 &
-\begin{minipage}[t]{6cm}\raggedright
-23条ERROR + 8条WARNING；错误类型：DB\_TIMEOUT(15)，OOM(5)，NULL\_PTR(3)；时间集中于14:23--14:31
-\end{minipage}
-& 99.4\% \\
+question & 用户输入的问题描述或场景描述 \\
+service & 当前分析的服务或组件标识 \\
+time\_range & 故障相关时间窗 \\
+metrics\_summary & 指标异常摘要及趋势描述 \\
+log\_summary & 日志错误摘要、关键报错与时间线 \\
+anomaly\_indicators & 已识别的异常指标名称集合 \\
+retrieved\_knowledge & 检索到的知识片段，非必选字段 \\
+severity & 依据指标偏离程度和日志密度得到的辅助严重程度标签 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{监控指标处理}
+\section{辅助知识增强方法}
 
-监控指标提供了系统运行状态的定量描述。本文设计的指标处理流程包括：
+\subsection{知识库内容组织}
 
-\textbf{异常指标识别}。按预设阈值识别异常指标。阈值可根据不同服务动态调整，常见的异常指标包括：CPU使用率（阈值90\%）、内存使用率（阈值85\%）、磁盘使用率（阈值95\%）、响应延迟（阈值500ms）、错误率（阈值1\%）等。
+结合RAG研究中“知识检索应服务于具体任务”的观点~\cite{gao2023ragsurvey,jiang2023active}，本文仅选取与运维诊断直接相关的文档进入知识库，包括三类内容：标准操作流程文档、历史故障案例和与关键服务相关的简要架构说明。这些文档既能提供排障步骤，也能为慢SQL、连接池耗尽等场景补充运维经验背景。
 
-\textbf{指标异常描述}。将数值型指标异常转换为文本描述。例如，"CPU使用率从30\%飙升至95\%"转换为"CPU使用率异常升高，近5分钟内增长65个百分点"。这种文本化处理有助于大语言模型理解指标变化。
+\subsection{层级切分与元数据过滤}
 
-\textbf{指标关联分析}。分析不同指标间的关联关系。例如，CPU升高往往伴随响应延迟增加，内存泄漏通常表现为内存使用率持续上升。通过关联分析，可以识别故障的主要矛盾和次要表现。
+在知识切分上，本文采用面向运维文档结构的层级切分策略，而不是固定长度切分。具体而言，优先按Markdown标题层级、步骤编号和案例阶段划分文档片段，使每个片段尽量保持语义完整。这一做法的原因在于，运维文档中的“步骤”“现象”“处理建议”通常本身就具有天然结构，如果简单按字数切分，容易打断关键语义单元。
 
-\subsection{严重程度评估}
+在检索阶段，除了语义相似度外，还增加服务名称、故障类型等元数据过滤条件。这样做的目的是减少“语义相似但服务无关”的召回结果，提高知识片段与当前场景的匹配程度。该思路与运维RAG研究中“场景限定优于无约束召回”的观点一致~\cite{zhang2024rag4itops,isaza2024ragincident}。
 
-数据融合模块综合考虑以下因素评估故障严重程度：
+\subsection{知识增强的使用边界}
 
-（1）\textbf{异常指标数量}：异常指标越多，表明故障影响范围越广。本文采用加权计数法，CPU和内存异常权重为2，其余指标权重为1。
+本文明确将RAG定位为辅助模块，而不是诊断主框架。只有当场景具有明显的知识依赖特征时，检索结果才进入统一分析上下文；若故障可仅依靠日志和指标判断，则RAG不应主导结论。这样的设计有利于后续实验中观察知识增强对不同故障类型的作用差异。
 
-（2）\textbf{错误日志密度}：单位时间内ERROR日志的出现频次。频次越高，表明故障越活跃。
-
-（3）\textbf{指标偏离程度}：异常指标相对于阈值的偏离程度。例如，CPU使用率达99\%比达91\%更为严重。
-
-严重程度分为四级：LOW（低）、MEDIUM（中）、HIGH（高）、CRITICAL（严重）。评估结果作为元信息传递给分析模块，帮助判断故障的紧迫程度。
-
-数据融合模块的方法流程如图~\ref{fig:evidence-builder-flow}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    >=stealth,
-    font=\songti\zihao{-5},
-    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.55cm, minimum height=0.74cm, align=center, inner sep=2pt},
-    proc/.style={draw, rounded corners, minimum width=2.85cm, minimum height=0.88cm, align=center, inner sep=3pt},
-    output/.style={draw, rounded corners, fill=green!12, minimum width=2.85cm, minimum height=0.9cm, align=center},
-    arrow/.style={->, thick}
-]
-\pgfmathsetmacro{\col}{3.35}
-\node[font=\songti\zihao{-5}, color=blue!70!black] at (-\col, 2.45) {日志处理};
-\node[font=\songti\zihao{-5}, color=orange!70!black] at (0, 2.45) {指标处理};
-\node[font=\songti\zihao{-5}, color=purple!70!black] at (\col, 2.45) {知识输入};
-
-\node[input] (logs) at (-\col, 1.62) {原始日志};
-\node[input] (metrics) at (0, 1.62) {监控指标};
-\node[input] (knowin) at (\col, 1.62) {检索知识};
-
-\node[proc, fill=blue!10] (filter) at (-\col, 0.62) {日志过滤};
-\node[proc, fill=blue!10] (classify) at (-\col, -0.38) {日志分类};
-\node[proc, fill=blue!10] (summary) at (-\col, -1.38) {日志摘要};
-
-\draw[arrow] (logs) -- (filter);
-\draw[arrow] (filter) -- (classify);
-\draw[arrow] (classify) -- (summary);
-
-\node[proc, fill=orange!12] (detect) at (0, 0.62) {异常识别};
-\node[proc, fill=orange!12] (convert) at (0, -0.38) {文本转换};
-\node[proc, fill=orange!12] (analyze) at (0, -1.38) {关联分析};
-
-\draw[arrow] (metrics) -- (detect);
-\draw[arrow] (detect) -- (convert);
-\draw[arrow] (convert) -- (analyze);
-
-% 三路在同一高度汇合后再进入评估（评估依据写入框内，避免旁注漂移）
-\coordinate (merge) at (0, -2.12);
-\draw[arrow] (analyze.south) -- (merge);
-\draw[arrow] (summary.south) |- (merge);
-\draw[arrow] (knowin.south) -- (\col, -2.12) -- (merge);
-
-\node[proc, fill=purple!12, text width=6.6cm, align=center, inner sep=5pt, minimum height=1.15cm] (severity) at (0, -3.15) {%
-  严重程度评估\\[-0.12em]
-  {\zihao{-6} 依据：异常指标数量；错误日志密度；指标偏离程度}%
-};
-
-\node[output] (context) at (0, -4.35) {AnalysisContext};
-
-\draw[arrow] (merge) -- (severity.north);
-\draw[arrow] (severity) -- (context);
-
-\end{tikzpicture}
-\caption{数据融合模块方法流程}
-\label{fig:evidence-builder-flow}
-\end{figure}
-
-数据融合模块的伪代码实现如算法~\ref{algo:evidence-builder}所示。
-
-\begin{algorithm}
-\caption{数据融合模块算法}
-\label{algo:evidence-builder}
-\KwIn{$question, service, time\_range, knowledge\_results, metrics, logs$}
-\KwOut{$context$}
-$filtered\_logs$ $\gets$ FilterByServiceAndTime($logs$, $service$, $time\_range$) \;
-$error\_logs$ $\gets$ ExtractErrors($filtered\_logs$) \;
-$log\_summary$ $\gets$ GenerateLogSummary($error\_logs$) \;
-$anomalies$ $\gets$ DetectAnomalies($metrics$, $thresholds$) \;
-$anomaly\_descriptions$ $\gets$ ConvertToText($anomalies$) \;
-$severity$ $\gets$ AssessSeverity($anomalies$, $error\_logs$) \;
-$context$ $\gets$ AnalysisContext($log\_summary$, $anomaly\_descriptions$, $knowledge\_results$, $severity$) \;
-\Return{$context$}
-\end{algorithm}
-
-实验结果表明（详见第四章），双源协同分析方案的准确率显著高于单独使用日志或单独使用指标的方案，说明该模块是本文方法取得效果提升的主要来源。
-
-\section{基于结构化提示的分析推理框架}
-
-为提升分析输出的一致性和规范性，本文设计基于结构化提示的推理框架，引导大语言模型按预定义的分析步骤完成故障分析。该模块并不改变核心证据来源，而是对诊断结果进行辅助控制。
+\section{辅助结构化推理方法}
 
 \subsection{结构化提示设计原则}
 
-为解决自由生成结果不规范、证据与结论脱节、输出格式不统一等问题，本文归纳出结构化提示设计的三条核心原则：
+结合提示工程和运维诊断任务特征~\cite{liu2023prompt,wei2022cot,wang2023planandsolve}，本文将结构化提示的设计原则概括为三点。
 
-\textbf{证据驱动原则}：所有结论必须基于提供的证据。通过要求模型在输出分析前先列出支撑证据和反对证据，确保推理过程有据可依。
+\textbf{证据驱动原则。}所有根因假设都必须显式对应支持证据，避免先下结论再补理由。
 
-\textbf{分步推理原则}：引导模型按照规范的逻辑框架展开分析，而非直接输出结论。通过要求模型先进行现象总结、证据分析，再进行原因推断和修复建议，确保推理过程可追溯。
+\textbf{分步分析原则。}模型需要先进行现象总结，再执行证据分析、原因推断、验证建议和修复建议，避免将不同推理步骤混杂在一段自然语言中。
 
-\textbf{结构化输出原则}：要求模型按JSON格式输出，便于后续解析和结果比较。标准化输出格式使得不同场景下的诊断结果可以横向对比。
+\textbf{结构化输出原则。}输出统一为固定字段集合，以便后续解析、评分和案例比较。
 
-本文设计的分析提示包含以下组成部分：
+\subsection{结构化输出字段}
 
-\textbf{角色设定与行为约束}。定义模型为资深运维工程师，明确其分析原则。通过角色设定与行为约束，将模型输出限制在运维故障分析场景内。
-
-（1）\textbf{现象总结}——简洁描述当前异常表现，包括受影响的指标和服务；
-
-（2）\textbf{证据分析}——从指标、日志和知识库中提取支持分析的关键信息；
-
-（3）\textbf{原因推断}——列出1至3个可能的故障原因，对每个原因给出：置信度（0-1）、支撑证据、反对证据、验证方法；
-
-（4）\textbf{修复建议}——针对最可能的原因给出可操作的修复步骤；
-
-（5）\textbf{数据缺口}——识别现有证据中的不足，提出需要补充的信息。
-
-\textbf{输出格式约束}。要求模型按JSON格式输出，便于后续解析和结果比较：
+本文要求模型输出以下核心字段：故障摘要、根因假设列表、支持证据、反对证据、验证步骤、修复建议和数据缺口。字段设计并不追求复杂，而是围绕实验评估需要确定最小集合。其参考格式如下：
 
 \begin{verbatim}
 {
-    "incident_summary": "一句话故障描述",
-    "suspected_root_causes": [
-        {
-            "cause": "根因描述",
-            "confidence": 0.85,
-            "supporting_evidence": ["证据1", "证据2"],
-            "contradicting_evidence": []
-        }
-    ],
-    "reasoning_chain": ["推理步骤1", "推理步骤2"],
-    "verification_steps": ["验证步骤1", "验证步骤2"],
-    "repair_suggestions": ["建议1", "建议2"],
-    "need_more_data": ["缺失数据1"]
+  "incident_summary": "一句话概括异常现象",
+  "suspected_root_causes": [
+    {
+      "cause": "根因描述",
+      "confidence": 0.82,
+      "supporting_evidence": ["证据1", "证据2"],
+      "contradicting_evidence": []
+    }
+  ],
+  "verification_steps": ["步骤1", "步骤2"],
+  "repair_suggestions": ["建议1", "建议2"],
+  "need_more_data": ["需要补充的信息"]
 }
 \end{verbatim}
 
-上述结构化提示的设计参考了LogPrompt和SuperLog的提示工程方法，结合运维故障诊断的任务特点进行了优化。
+\subsection{后备规则机制}
 
-\subsection{后备规则分析机制}
+考虑到大语言模型在实验环境中可能出现调用失败、字段缺失或输出不可解析等情况，本文保留一个简化的规则后备机制。该机制仅依据已识别的异常指标和高频错误模式返回粗粒度分析结果，用于保证实验流程可以完整执行。需要说明的是，该后备机制不作为本文的研究创新点，也不承担主要诊断任务，只作为实验鲁棒性补充。
 
-大语言模型在运维场景中仍可能调用失败或输出异常，为保证方法完整性，本文引入规则后备分析机制。该后备机制的目的不是替代大语言模型推理，而是在模型不可用或输出异常时保证方法流程的可用性。
+\section{研究验证原型设计}
 
-规则映射表定义了常见指标异常与可能原因的对应关系：
+本文原型系统的定位是\textbf{研究验证原型}，而非完整产品系统。其作用是为方法验证提供统一环境，而不是追求交互功能的完备性。原型仅保留四类能力：场景管理、日志与指标处理、知识检索与结构化诊断、批量实验评估。
 
-\begin{itemize}
-\item CPU异常 + 高负载 $\rightarrow$ 可能的原因：CPU密集型任务、死循环、资源竞争；
-\item 内存异常 + 持续增长 $\rightarrow$ 可能的原因：内存泄漏、缓存膨胀、对象未释放；
-\item 数据库连接异常 $\rightarrow$ 可能的原因：连接池配置不当、慢查询阻塞、连接泄露；
-\item 网络延迟异常 $\rightarrow$ 可能的原因：网络抖动、DNS解析问题、服务端过载。
-\end{itemize}
-
-后备规则分析的输出格式简化，但仍包含故障原因和修复建议，便于用户参考。
-
-结构化推理框架的方法流程如图~\ref{fig:rca-engine-flow}所示。
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    >=stealth,
-    font=\songti\zihao{-5},
-    input/.style={draw, shape=ellipse, fill=gray!12, minimum width=2.8cm, minimum height=0.75cm, align=center},
-    proc/.style={draw, rounded corners, fill=blue!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
-    output/.style={draw, rounded corners, fill=green!12, minimum width=3.2cm, minimum height=0.95cm, align=center},
-    dia/.style={draw, shape=diamond, aspect=2, fill=yellow!15, minimum width=2.2cm, minimum height=1.1cm, align=center},
-    arrow/.style={->, thick}
-]
-
-\node[input] (context) at (0, 3.1) {AnalysisContext};
-
-\node[proc] (prompt) at (0, 1.85) {构建结构化提示};
-
-\node[proc, fill=purple!12] (llm) at (0, 0.55) {调用LLM API};
-
-\node[dia] (parse) at (0, -1.05) {解析成功?};
-
-\node[output] (success) at (0, -2.85) {结构化诊断结果};
-
-\node[proc, fill=orange!12, text width=2.6cm, align=center] (fallback) at (4.2, -1.05) {后备规则分析\\[-0.1em]{\footnotesize （规则映射）}};
-
-\node[output] (result) at (0, -4.5) {诊断结果输出};
-
-\draw[arrow] (context) -- (prompt);
-\draw[arrow] (prompt) -- (llm);
-\draw[arrow] (llm) -- (parse);
-\draw[arrow] (parse) -- node[pos=0.42, left, inner sep=1pt] {是} node[pos=0.58, right, inner sep=1pt, font=\footnotesize, text=green!60!black] {JSON解析} (success);
-\draw[arrow] (parse) -- node[midway, above] {否} (fallback);
-\draw[arrow] (success) -- (result);
-\draw[arrow] (fallback) |- (result);
-
-\node[text width=2.6cm, align=right, font=\songti\zihao{-6}] at (-3.5, 0.9) {提示包含：角色设定；上下文规范；推理步骤约束；输出格式要求};
-
-\end{tikzpicture}
-\caption{结构化推理框架流程}
-\label{fig:rca-engine-flow}
-\end{figure}
-
-结构化推理框架的伪代码实现如算法~\ref{algo:rca-engine}所示。
-
-\begin{algorithm}
-\SetKwInOut{Input}{输入}
-\SetKwInOut{Output}{输出}
-\caption{结构化推理框架算法}
-\label{algo:rca-engine}
-\Input{统一分析上下文 $C$}
-\Output{诊断结果 $R$}
-$P$ $\gets$ $\text{构建提示词}(C)$ \;
-\If{调用大模型成功}{
-    $R_{raw}$ $\gets$ $\text{调用大模型}(P)$ \;
-    $R$ $\gets$ $\text{解析JSON}(R_{raw})$ \;
-    \If{$R$ 有效}{
-        \Return{$R$}
-    }
-}
-\Else{
-    $R$ $\gets$ $\text{规则匹配}(C_{anomalies})$ \;
-    \Return{$R$}
-}
-\end{algorithm}
-
-\section{原型系统实现}
-
-原型系统的实现目标是为核心双源协同方法及两个辅助模块提供统一验证环境。原型系统采用Python语言开发，技术栈包括Streamlit、FastAPI、ChromaDB和OpenAI API。
-
-原型系统提供四个人机交互入口：（1）故障诊断界面：用户输入故障描述，系统返回结构化诊断结果；（2）知识查询界面：用户可直接查询运维知识库；（3）监控展示界面：展示实时监控指标和告警信息；（4）实验评估界面：支持批量运行测试场景，查看评估指标和对比结果。
-
-后端主要模块包括：（1）诊断服务：接收故障描述，协调知识检索、数据融合和分析推理，返回诊断结果；（2）知识检索服务：封装向量检索逻辑，支持按服务名、故障类型等维度过滤；（3）实验评估服务：支持批量运行预设测试场景，计算评估指标。
-
-端到端的诊断Pipeline执行流程为：接收用户问题后，首先获取日志和监控指标等核心现场证据；其次在需要时调用知识检索服务补充背景文档；接着通过数据融合模块将双源实时信息统一组织为分析上下文；最后调用分析推理模块生成诊断结果。
-
-端到端诊断方法的执行流程如图~\ref{fig:pipeline-flow}所示。
+原型采用Python技术栈实现，后端使用FastAPI组织服务接口，前端使用Streamlit提供最小化展示界面，知识片段存储于向量数据库中，实验样例和评分逻辑以本地文件形式管理。图~\ref{fig:pipeline-flow}给出了原型中的端到端执行流程。
 
 \begin{figure}[htbp]
 \centering
@@ -471,46 +161,30 @@ $P$ $\gets$ $\text{构建提示词}(C)$ \;
     >=stealth,
     node distance=0.8cm,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, fill=blue!15, minimum width=3cm, minimum height=0.8cm, align=center},
-    arrow/.style={->, thick, >=stealth}
+    box/.style={draw, rounded corners, fill=blue!15, minimum width=3.1cm, minimum height=0.82cm, align=center},
+    arrow/.style={->, thick}
 ]
 
-\node[box] (input) at (0, 0) {1. 用户输入};
+\node[box] (input) at (0, 0) {1. 读取场景输入};
+\node[box, fill=green!15] (knowledge) at (0, -1.4) {2. 按需知识检索};
+\node[box, fill=orange!15] (collect) at (0, -2.8) {3. 处理日志与指标};
+\node[box, fill=purple!15] (fusion) at (0, -4.2) {4. 构建统一上下文};
+\node[box, fill=red!15] (reasoning) at (0, -5.6) {5. 生成结构化结果};
+\node[box, fill=yellow!15] (evaluate) at (0, -7.0) {6. 记录实验评分};
 
-\node[box, fill=green!15] (retrieve) at (0, -1.5) {2. 知识检索};
-
-\node[box, fill=orange!15] (data) at (0, -3) {3. 获取实时数据};
-
-\node[box, fill=purple!15] (fusion) at (0, -4.5) {4. 数据融合};
-
-\node[box, fill=red!15] (rca) at (0, -6) {5. RCA推理};
-
-\node[box, fill=green!15] (output) at (0, -7.5) {6. 输出诊断结果};
-
-\node[anchor=east, font=\songti\zihao{-5}, color=green!60!black] at (-4.5, -1.5) {ChromaDB};
-\node[anchor=east, font=\songti\zihao{-5}, color=orange!70!black] at (-4.5, -3) {日志/指标};
-\node[anchor=east, font=\songti\zihao{-5}, color=purple!70!black] at (-4.5, -4.5) {EvidenceBuilder};
-\node[anchor=east, font=\songti\zihao{-5}, color=red!60!black] at (-4.5, -6) {LLM+Prompt};
-
-\draw[arrow] (input) -- (retrieve);
-\draw[arrow] (retrieve) -- (data);
-\draw[arrow] (data) -- (fusion);
-\draw[arrow] (fusion) -- (rca);
-\draw[arrow] (rca) -- (output);
-
-\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -4.5) {返回内容:};
-\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -5) {故障摘要};
-\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -5.5) {根因假设};
-\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -6) {置信度评分};
-\node[anchor=west, font=\songti\zihao{-5}, color=gray] at (3.5, -6.5) {修复建议};
+\draw[arrow] (input) -- (knowledge);
+\draw[arrow] (knowledge) -- (collect);
+\draw[arrow] (collect) -- (fusion);
+\draw[arrow] (fusion) -- (reasoning);
+\draw[arrow] (reasoning) -- (evaluate);
 
 \end{tikzpicture}
-\caption{端到端诊断方法流程}
+\caption{研究验证原型中的端到端流程}
 \label{fig:pipeline-flow}
 \end{figure}
 
+需要强调的是，原型中不再将自动修复、自愈闭环或生产级部署作为研究目标。相关能力即便在代码层面存在，也不进入论文核心叙事与实验结论，从而避免“系统展示过多、研究主线不足”的问题。
+
 \section{本章小结}
 
-本章围绕方法设计与原型实现展开。首先明确了本文“以日志与监控指标协同分析为核心、以知识检索和结构化推理为辅助”的设计目标；随后介绍了方法总体架构，包括辅助知识增强、核心数据融合和辅助推理控制三个模块。
-
-在方法设计上，本文提出了日志与监控指标协同分析方法，通过时间窗与TraceID机制构建统一分析上下文；在此基础上，设计面向运维文档结构的知识检索方法作为辅助知识补充模块，并设计结构化提示推理框架作为辅助结果控制模块。最后介绍了原型系统实现，为第四章的研究型实验提供验证基础。
+本章给出了本文的方法设计。首先明确了“双源协同为主线、知识增强与结构化推理为辅助”的总体框架；随后介绍了日志处理、指标处理和统一分析上下文构建等核心方法；在此基础上说明了RAG与结构化推理两个辅助模块的设计原则；最后介绍了研究验证原型的最小实现边界。上述内容为第四章的实验设置和结果分析提供了方法依据。

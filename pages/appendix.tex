@@ -2,88 +2,74 @@
 
 \appendix
 
-\chapter{系统核心代码}
+\chapter{研究验证原型补充说明}
 
-本文实现的LLM-Ops Copilot原型系统代码托管于项目仓库。以下列出系统核心模块的关键代码结构。
+本文实现的研究验证原型代码托管于项目仓库。附录仅保留与论文方法和实验直接相关的结构化信息，用于说明原型如何支撑第三章的方法设计与第四章的实验评估。
 
-\subsection{证据融合器核心代码}
+\subsection{统一分析上下文示例}
 
-证据融合器（EvidenceBuilder）负责将双源运维数据统一组织为分析上下文，其核心实现如代码所示。
+原型中的分析上下文围绕“问题、时间窗、日志摘要、指标摘要、知识片段、严重程度”组织。其核心数据结构示例如下。
 
 \begin{verbatim}
-class EvidenceBuilder:
-    def __init__(self, config):
-        self.thresholds = config.get('thresholds', {})
-        self.severity_rules = config.get('severity_rules', {})
-
-    def build_context(self, question, service, time_range,
-                      knowledge, metrics, logs):
-        # 提取异常指标
-        anomalies = self.extract_anomalies(metrics)
-        # 评估严重程度
-        severity = self.assess_severity(metrics, logs, anomalies)
-        # 构建分析上下文
-        context = AnalysisContext(
-            question=question,
-            service=service,
-            time_range=time_range,
-            retrieved_knowledge=knowledge,
-            metrics_summary=metrics,
-            log_summary=logs,
-            anomaly_indicators=anomalies,
-            severity=severity
-        )
-        return context
+AnalysisContext(
+    question="为什么该时间窗内接口延迟明显升高？",
+    service="hotel-service",
+    time_range="2026-03-11 09:00-09:15",
+    metrics_summary="P95延迟持续上升，数据库连接数逼近上限",
+    log_summary="出现 connection timeout 和 pool exhausted 报错",
+    anomaly_indicators=["p95_latency", "db_connections"],
+    retrieved_knowledge=[...],
+    severity="high"
+)
 \end{verbatim}
 
-\subsection{RCA引擎核心代码}
+\subsection{结构化输出字段示例}
 
-RCA引擎（RCAEngine）负责基于大语言模型进行根因分析推理，其核心实现如代码所示。
+为便于结果评估，原型统一返回结构化诊断结果。关键字段示例如下。
 
 \begin{verbatim}
-class RCAEngine:
-    def __init__(self, llm_service, prompts):
-        self.llm = llm_service
-        self.prompts = prompts
-
-    def analyze(self, context):
-        # 构建RCA Prompt
-        prompt = self.prompts.build_rca_prompt(context)
-        # 调用大语言模型
-        response = self.llm.generate(prompt)
-        # 解析JSON输出
-        result = self.parse_response(response)
-        return result
+{
+    "incident_summary": "数据库相关请求在指定时间窗内明显变慢",
+    "suspected_root_causes": [
+        {
+            "cause": "数据库连接池耗尽",
+            "confidence": 0.84,
+            "supporting_evidence": [
+                "连接数逼近上限",
+                "日志中出现 pool exhausted 报错"
+            ],
+            "contradicting_evidence": []
+        }
+    ],
+    "verification_steps": [
+        "检查连接池配置和活动连接释放情况",
+        "检查是否存在慢查询阻塞"
+    ],
+    "repair_suggestions": [
+        "临时提高连接池上限",
+        "定位并优化阻塞SQL"
+    ],
+    "need_more_data": [
+        "数据库活动连接详情"
+    ]
+}
 \end{verbatim}
 
-\subsection{知识库文档示例}
+\subsection{实验评分规则示例}
 
-运维知识库中的文档采用Markdown格式编写，包含Front-matter元数据。以下为知识库文档的示例结构。
+第四章采用统一评分规则对结果进行人工核对，其示例如下。
 
 \begin{verbatim}
----
-doc_id: SOP-DB-001
-title: 数据库连接池耗尽故障处理
-service_name: payment-service
-fault_type: database
-keywords: [connection, pool, timeout]
-source_type: SOP
----
+样例: 数据库连接池耗尽（轻度变体）
+标准根因: 数据库连接池耗尽 / 连接泄露 / 连接池配置偏小
+关键证据:
+1. 数据库连接数接近上限
+2. 日志出现 timeout 或 pool exhausted
+3. 延迟明显上升
 
-# 数据库连接池耗尽故障处理
-
-## 1. 故障现象
-- 响应时间显著增加
-- 日志出现 "Connection pool exhausted"
-
-## 2. 可能原因
-1. 数据库连接泄露
-2. 连接池配置过小
-3. SQL查询阻塞
-
-## 3. 排查步骤
-...
-
-## 4. 修复方案
-...
+评分:
+- Top-1命中: 是/否
+- Top-3覆盖: 是/否
+- 关键证据命中率: 命中条数 / 3
+- 输出规范率: 必需字段完整数 / 4
 \end{verbatim}
