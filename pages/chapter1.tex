@@ -58,43 +58,40 @@
 
 \section{研究方法与技术路线}
 
-本文采用文献调研、方法设计、原型验证和对照实验相结合的研究方法。
+本文采用文献调研、方法设计、原型验证和对照实验相结合的研究方法，并按照“问题界定—方法提出—实验验证—结论收束”的逻辑组织全文。
 
 在文献调研阶段，重点梳理日志分析、根因分析、多源证据融合、RAG与结构化推理等方向的研究进展，明确本文的切入点不在于提出新的基础模型，而在于构建一套更贴合运维诊断场景的双源协同分析流程。
 
-在方法设计阶段，围绕研究问题设计“核心主线 + 辅助模块”的方法结构。核心主线为日志与监控指标协同分析，辅助模块包括知识增强和结构化输出控制。该设计力求避免将所有技术点并列堆叠，而是强调各模块在整体诊断链路中的不同职责。
+在方法设计阶段，围绕研究问题设计“核心主线 + 辅助模块”的方法结构。核心主线为日志与监控指标协同分析，辅助模块包括知识增强和结构化输出控制。该设计强调各模块在诊断链路中的不同职责，而不是将所有技术点并列堆叠。
 
 在原型验证阶段，本文使用Python语言实现研究验证原型。原型仅保留场景管理、日志与指标处理、知识检索、结构化诊断和批量评估等支撑实验所需的最小能力，不以完整产品为目标。
 
 在实验阶段，本文采用五组对照设置和统一评分规则验证方法效果。主实验覆盖资源型、中间件/数据库型和链路传播型三类故障；补充实验利用公开日志样例观察结构化输出在跨数据集场景中的稳定性。
 
-本文技术路线如图~\ref{fig:roadmap}所示。
+本文研究思路如图~\ref{fig:roadmap}所示。该思路先回答“单源诊断为何不足”，再给出“双源协同为主线、辅助模块按需接入”的方法设计，最后通过受控样例和对照实验验证方法是否成立及其适用边界。
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
     >=stealth,
-    node distance=1.55cm,
+    scale=0.92,
+    transform shape,
     font=\songti\zihao{-5},
-    proc/.style={draw, rounded corners, fill=blue!10, minimum width=3.2cm, minimum height=0.85cm, align=center},
+    proc/.style={draw, rounded corners, minimum width=8.0cm, minimum height=0.9cm, align=center},
     arrow/.style={->, thick}
 ]
 
-\node[proc] (step1) at (0, 3.2) {文献调研与问题定义};
-\node[proc] (step2) at (0, 1.6) {双源协同方法设计};
-\node[proc] (step3) at (0, 0) {辅助模块设计};
-\node[proc] (step4) at (0, -1.6) {研究验证原型实现};
-\node[proc] (step5) at (0, -3.2) {对照实验与补充验证};
-\node[proc] (step6) at (0, -4.8) {结果分析与结论收束};
+\node[proc, fill=red!10] (step1) at (0, 3.0) {问题界定：单独依赖日志或监控指标时，根因定位稳定性不足};
+\node[proc, fill=orange!12] (step2) at (0, 1.2) {方法提出：以日志与监控指标协同分析为主线，RAG与结构化推理按需辅助};
+\node[proc, fill=blue!12] (step3) at (0, -0.6) {实验验证：构建21个受控样例，设置五组对照并采用统一评分规则};
+\node[proc, fill=green!12] (step4) at (0, -2.4) {结论收束：验证方法可行性，并分析增益来源、适用场景与局限};
 
 \draw[arrow] (step1) -- (step2);
 \draw[arrow] (step2) -- (step3);
 \draw[arrow] (step3) -- (step4);
-\draw[arrow] (step4) -- (step5);
-\draw[arrow] (step5) -- (step6);
 
 \end{tikzpicture}
-\caption{本文技术路线图}
+\caption{本文研究思路与论文逻辑}
 \label{fig:roadmap}
 \end{figure}
 

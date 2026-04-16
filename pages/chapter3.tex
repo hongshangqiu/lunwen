@@ -1,8 +1,6 @@
 \chapter{方法设计与研究验证原型}
 
-本章围绕本文的三个研究问题展开方法设计。整体思路是将日志与监控指标协同分析作为主线方法，将知识增强和结构化推理作为两个辅助模块，并通过一个最小化的研究验证原型承载实验。与偏产品化的系统设计不同，本文更关注每个模块在诊断链路中的职责是否清楚、变量是否便于控制以及输出是否便于评估。
-
-需要说明的是，本文的方法设计并不追求把所有可观测数据统一接入，也不追求在原型阶段实现完整的自动化处置闭环，而是强调围绕研究问题构建\textbf{可解释、可对照、可复核}的诊断流程。具体而言，日志与监控指标承担现场证据组织职责，RAG承担知识补充职责，结构化推理承担输出约束职责，研究验证原型则负责将这些职责落实到统一的实验环境中。这样的分工有助于在后续实验中分别观察核心主线和辅助模块的实际增益，而不是将多种技术效果混合在一起。
+本章围绕本文的三个研究问题展开方法设计。整体采用“核心主线 + 辅助模块”的组织方式：以日志与监控指标协同分析作为主方法，以知识增强和结构化推理作为辅助模块，并通过一个最小化的研究验证原型承载实验。本文不追求接入全部可观测数据，也不追求在原型阶段实现完整自动化处置闭环，而是强调围绕研究问题构建\textbf{可解释、可对照、可复核}的诊断流程，以便在后续实验中清晰观察各模块的作用边界。
 
 \section{设计目标与总体框架}
 
@@ -20,18 +18,20 @@
 \centering
 \begin{tikzpicture}[
     >=stealth,
+    scale=0.9,
+    transform shape,
     font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, minimum width=2.35cm, minimum height=0.86cm, align=center},
+    box/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.82cm, align=center},
     arrow/.style={->, thick}
 ]
 
-\node[box, fill=gray!12, minimum width=7.6cm] (input) at (0, 3.4) {受控场景输入：日志、监控指标、运维文档};
+\node[box, fill=gray!12, minimum width=7.0cm] (input) at (0, 3.3) {受控场景输入：日志、监控指标、运维文档};
 \node[box, fill=blue!12, minimum width=2.6cm] (knowledge) at (-3.2, 1.8) {辅助模块\\知识检索};
 \node[box, fill=orange!12, minimum width=2.8cm] (fusion) at (0, 1.8) {核心模块\\双源证据融合};
 \node[box, fill=green!12, minimum width=2.6cm] (reasoning) at (3.2, 1.8) {辅助模块\\结构化推理};
-\node[box, fill=purple!12, minimum width=7.6cm] (context) at (0, 0.1) {统一分析上下文：问题、时间窗、日志摘要、指标摘要、检索知识、严重程度};
-\node[box, fill=red!12, minimum width=7.6cm] (output) at (0, -1.7) {结构化诊断结果：现象总结、根因假设、关键证据、验证步骤、修复建议};
-\node[box, fill=yellow!12, minimum width=7.6cm] (eval) at (0, -3.5) {实验评估：Top-1准确率、Top-3覆盖率、关键证据命中率、输出规范率、响应时间};
+\node[box, fill=purple!12, minimum width=7.0cm] (context) at (0, 0.1) {统一分析上下文：问题、时间窗、日志摘要、指标摘要、检索知识、严重程度};
+\node[box, fill=red!12, minimum width=7.0cm] (output) at (0, -1.6) {结构化诊断结果：现象总结、根因假设、关键证据、验证步骤、修复建议};
+\node[box, fill=yellow!12, minimum width=7.0cm] (eval) at (0, -3.3) {实验评估：Top-1准确率、Top-3覆盖率、关键证据命中率、输出规范率、响应时间};
 
 \draw[arrow] (input) -- (fusion);
 \draw[arrow] (input) -- (knowledge);
@@ -94,7 +94,10 @@
 \centering
 \caption{统一分析上下文字段}
 \label{tab:analysis-context}
-\begin{tabular}{p{3.2cm}p{8.4cm}}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{p{2.9cm}p{8.1cm}}
 \toprule
 字段 & 含义 \\
 \midrule
@@ -187,7 +190,7 @@ severity & 依据指标偏离程度和日志密度得到的辅助严重程度标
 
 本文原型系统的定位是\textbf{研究验证原型}，而非完整产品系统。其作用是为方法验证提供统一环境，而不是追求交互功能的完备性。原型仅保留四类能力：场景管理、日志与指标处理、知识检索与结构化诊断、批量实验评估。
 
-原型采用Python技术栈实现，后端使用FastAPI组织服务接口，前端使用Streamlit提供最小化展示界面，知识片段存储于向量数据库中，实验样例和评分逻辑以本地文件形式管理。图~\ref{fig:pipeline-flow}给出了原型中的端到端执行流程。
+原型采用Python技术栈实现，后端使用FastAPI组织服务接口，前端使用Streamlit提供最小化展示界面，知识片段存储于向量数据库中，实验样例和评分逻辑以本地文件形式管理。其端到端执行过程可以概括为“读取场景输入—按需知识检索—处理日志与指标—构建统一上下文—生成结构化结果—记录实验评分”六个步骤。
 
 \subsection{原型分层与模块职责}
 
@@ -197,35 +200,7 @@ severity & 依据指标偏离程度和日志密度得到的辅助严重程度标
 
 \subsection{端到端流程与实验承载方式}
 
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    >=stealth,
-    node distance=0.8cm,
-    font=\songti\zihao{-5},
-    box/.style={draw, rounded corners, fill=blue!15, minimum width=3.1cm, minimum height=0.82cm, align=center},
-    arrow/.style={->, thick}
-]
-
-\node[box] (input) at (0, 0) {1. 读取场景输入};
-\node[box, fill=green!15] (knowledge) at (0, -1.4) {2. 按需知识检索};
-\node[box, fill=orange!15] (collect) at (0, -2.8) {3. 处理日志与指标};
-\node[box, fill=purple!15] (fusion) at (0, -4.2) {4. 构建统一上下文};
-\node[box, fill=red!15] (reasoning) at (0, -5.6) {5. 生成结构化结果};
-\node[box, fill=yellow!15] (evaluate) at (0, -7.0) {6. 记录实验评分};
-
-\draw[arrow] (input) -- (knowledge);
-\draw[arrow] (knowledge) -- (collect);
-\draw[arrow] (collect) -- (fusion);
-\draw[arrow] (fusion) -- (reasoning);
-\draw[arrow] (reasoning) -- (evaluate);
-
-\end{tikzpicture}
-\caption{研究验证原型中的端到端流程}
-\label{fig:pipeline-flow}
-\end{figure}
-
-图~\ref{fig:pipeline-flow}所示流程对应原型中的实际执行顺序：首先读取受控场景输入，包括问题描述、时间窗、目标服务和可用证据；随后根据实验配置决定是否执行知识检索；然后分别处理指标和日志，生成面向模型的摘要；之后由证据融合模块构建统一分析上下文，并由RCA模块生成结构化结果；最后由实验评估模块按照预设rubric记录准确率、证据命中率和输出规范率等指标。由于五组实验共享同一套端到端框架，因此不同设置之间的结果差异可以更直接地解释为输入证据和输出约束的差异，而不是实现路径差异。
+上述流程对应原型中的实际执行顺序：首先读取受控场景输入，包括问题描述、时间窗、目标服务和可用证据；随后根据实验配置决定是否执行知识检索；然后分别处理指标和日志，生成面向模型的摘要；之后由证据融合模块构建统一分析上下文，并由RCA模块生成结构化结果；最后由实验评估模块按照预设rubric记录准确率、证据命中率和输出规范率等指标。由于五组实验共享同一套端到端框架，因此不同设置之间的结果差异可以更直接地解释为输入证据和输出约束的差异，而不是实现路径差异。
 
 从论文验证角度看，原型的价值不在于提供复杂界面，而在于为方法、样例和评分规则提供统一载体。受控微服务和本地日志/指标数据保证了场景可复现；ChromaDB和知识检索服务保证了RAG模块具备可观察输入；实验样例定义和评估器保证了每个实验组都在同一批样例和同一评分准则下运行。也正因为如此，原型更适合被理解为一种\textbf{研究支撑工具}，而非面向生产的完整故障诊断平台。
 
