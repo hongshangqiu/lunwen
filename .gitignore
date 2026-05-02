@@ -62,6 +62,7 @@ Icon?
 # Linux
 .*
 !.gitignore
+!.gitattributes
 
 # IDE 和编辑器
 .vscode/
