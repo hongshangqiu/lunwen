@@ -41,6 +41,12 @@ Wuhan_University_LaTeX_Undergraduate_Thesis_Template__1_
 *_temp.*
 *_backup.*
 
+# 答辩 PPT 相关文件（本地生成，不上传）
+*.ppt
+*.pptx
+*.pptm
+defense_ppt/
+
 # ==========================================
 # 系统和编辑器产生的文件
 # ==========================================
