@@ -1500,7 +1500,7 @@
         \file_input:V \g__whu_element_abstract_en_tl
         \skip_vertical:N \c__whu_baseline_skip \par
         \__whu_put_keywords:nn
-          { \bfseries \zihao { -4 } Key ~ words: ~ }
+          { \bfseries \zihao { -4 } Keywords: ~ }
           { \clist_use:Nn \g__whu_info_keywords_en_clist { ; ~ } }
       }
     \__whu_new_chapter_page:
